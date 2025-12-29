@@ -3,7 +3,7 @@
   "name": "Tealium Data Sender",
   "version": "0.1.0",
   "description": "Reads Tealium utag data and sends it to a local app.",
-  "permissions": ["activeTab", "scripting", "tabs"],
+  "permissions": ["activeTab", "scripting", "storage", "tabs"],
   "host_permissions": ["http://localhost:3005/*"],
   "background": {
     "service_worker": "background.js"

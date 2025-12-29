@@ -15,6 +15,10 @@
     }
   };
 
+  let sequence = 0;
+  let enabled = false;
+  let statusSent = false;
+
   const postLog = (entry) => {
     window.postMessage(
       {
@@ -22,18 +26,49 @@
         type: 'console_log',
         payload: [safeSerialize(entry)],
         timestamp: new Date().toISOString(),
+        sequence: sequence++,
+      },
+      '*'
+    );
+  };
+
+  const postStatus = (status) => {
+    if (statusSent) {
+      return;
+    }
+    statusSent = true;
+    window.postMessage(
+      {
+        source: 'tealium-extension',
+        type: 'bridge_status',
+        payload: status,
+        timestamp: new Date().toISOString(),
       },
       '*'
     );
   };
 
   const wrapUtagDb = () => {
+    if (!enabled) {
+      return;
+    }
     const utag = window.utag;
     if (!utag || typeof utag.DB !== 'function') {
-      return false;
+      postStatus({
+        ok: false,
+        reason: 'utag.DB not available',
+      });
+      return;
     }
     if (utag.DB.__tealiumWrapped) {
-      return true;
+      postStatus({
+        ok: true,
+        wrapped: true,
+        utagdb: utag.cfg && utag.cfg.utagdb,
+        noconsole: utag.cfg && utag.cfg.noconsole,
+        dbLogLength: Array.isArray(utag.db_log) ? utag.db_log.length : null,
+      });
+      return;
     }
 
     const original = utag.DB;
@@ -59,16 +94,30 @@
       return result;
     };
     utag.DB.__tealiumWrapped = true;
-    return true;
+    postStatus({
+      ok: true,
+      wrapped: true,
+      utagdb: utag.cfg && utag.cfg.utagdb,
+      noconsole: utag.cfg && utag.cfg.noconsole,
+      dbLogLength: Array.isArray(utag.db_log) ? utag.db_log.length : null,
+    });
   };
 
-  const tryInstall = () => {
-    if (wrapUtagDb()) {
-      clearInterval(installTimer);
+  const ensureWrapped = () => {
+    wrapUtagDb();
+  };
+
+  ensureWrapped();
+  setInterval(ensureWrapped, 1000);
+
+  window.addEventListener('message', (event) => {
+    if (event.source !== window || !event.data) {
+      return;
     }
-  };
-
-  const installTimer = setInterval(tryInstall, 1000);
-  tryInstall();
+    if (event.data.source !== 'tealium-extension' || event.data.type !== 'set_enabled') {
+      return;
+    }
+    enabled = Boolean(event.data.enabled);
+  });
 
 })();

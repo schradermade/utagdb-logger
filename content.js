@@ -15,6 +15,31 @@ function readUtagData() {
 }
 
 let extensionValid = true;
+const ENABLED_KEY = 'enabled';
+
+const postEnabledState = (enabled) => {
+  window.postMessage(
+    {
+      source: 'tealium-extension',
+      type: 'set_enabled',
+      enabled: Boolean(enabled),
+    },
+    '*'
+  );
+};
+
+const syncEnabledState = () => {
+  try {
+    if (!chrome || !chrome.storage || !chrome.storage.local) {
+      return;
+    }
+    chrome.storage.local.get({ [ENABLED_KEY]: false }, (items) => {
+      postEnabledState(items[ENABLED_KEY]);
+    });
+  } catch (err) {
+    extensionValid = false;
+  }
+};
 
 const safeSendMessage = (message) => {
   if (!extensionValid) {
@@ -34,18 +59,42 @@ window.addEventListener('message', (event) => {
   if (event.source !== window || !event.data) {
     return;
   }
-  if (event.data.source !== 'tealium-extension' || event.data.type !== 'console_log') {
+  if (event.data.source !== 'tealium-extension') {
     return;
   }
-  safeSendMessage({
-    type: 'console_log',
-    payload: {
-      url: location.href,
-      timestamp: event.data.timestamp,
-      args: event.data.payload,
-    },
-  });
+  if (event.data.type === 'console_log') {
+    safeSendMessage({
+      type: 'console_log',
+      payload: {
+        url: location.href,
+        timestamp: event.data.timestamp,
+        args: event.data.payload,
+        sequence: event.data.sequence,
+      },
+    });
+    return;
+  }
+  if (event.data.type === 'bridge_status') {
+    safeSendMessage({
+      type: 'bridge_status',
+      payload: {
+        url: location.href,
+        timestamp: event.data.timestamp,
+        status: event.data.payload,
+      },
+    });
+  }
 });
+
+syncEnabledState();
+if (chrome && chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local' || !changes[ENABLED_KEY]) {
+      return;
+    }
+    postEnabledState(changes[ENABLED_KEY].newValue);
+  });
+}
 
 try {
   if (chrome && chrome.runtime && chrome.runtime.onMessage) {

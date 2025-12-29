@@ -1,4 +1,4 @@
-const button = document.getElementById('send');
+const toggle = document.getElementById('enabled');
 const statusEl = document.getElementById('status');
 
 function setStatus(text, isError) {
@@ -6,7 +6,7 @@ function setStatus(text, isError) {
   statusEl.style.color = isError ? '#b00020' : '#006400';
 }
 
-button.addEventListener('click', () => {
+const sendUtag = () => {
   setStatus('Sending...', false);
   chrome.runtime.sendMessage({ type: 'send_utag' }, (response) => {
     if (chrome.runtime.lastError) {
@@ -21,4 +21,36 @@ button.addEventListener('click', () => {
       response && response.error ? response.error : 'Failed to send';
     setStatus(error, true);
   });
+};
+
+const setEnabled = (enabled) => {
+  chrome.runtime.sendMessage({ type: 'set_enabled', enabled }, (response) => {
+    if (chrome.runtime.lastError) {
+      setStatus(chrome.runtime.lastError.message, true);
+      return;
+    }
+    if (!response || !response.ok) {
+      setStatus('Failed to update setting', true);
+      return;
+    }
+    if (enabled) {
+      sendUtag();
+    } else {
+      setStatus('Sending disabled', false);
+    }
+  });
+};
+
+chrome.runtime.sendMessage({ type: 'get_enabled' }, (response) => {
+  if (chrome.runtime.lastError) {
+    setStatus(chrome.runtime.lastError.message, true);
+    return;
+  }
+  const enabled = response && response.enabled;
+  toggle.checked = Boolean(enabled);
+  setStatus(enabled ? 'Sending enabled' : 'Sending disabled', false);
+});
+
+toggle.addEventListener('change', () => {
+  setEnabled(toggle.checked);
 });
