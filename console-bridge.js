@@ -15,57 +15,60 @@
     }
   };
 
-  const methods = ['log', 'info', 'warn', 'error', 'debug'];
-  const originals = {};
-
-  const wrapMethod = (method) => {
-    const current = console[method];
-    if (current && current.__tealiumWrapped) {
-      return;
-    }
-    originals[method] = current;
-    const wrapped = function (...args) {
-      try {
-        window.postMessage(
-          {
-            source: 'tealium-extension',
-            type: 'console_log',
-            payload: args.map(safeSerialize),
-            timestamp: new Date().toISOString(),
-            level: method,
-          },
-          '*'
-        );
-      } catch (err) {
-        // ignore
-      }
-      if (typeof originals[method] === 'function') {
-        return originals[method].apply(console, args);
-      }
-      return undefined;
-    };
-    wrapped.__tealiumWrapped = true;
-    console[method] = wrapped;
-  };
-
-  const ensureWrapped = () => {
-    methods.forEach((method) => wrapMethod(method));
-  };
-
-  ensureWrapped();
-  setInterval(ensureWrapped, 1000);
-
-  try {
+  const postLog = (entry) => {
     window.postMessage(
       {
         source: 'tealium-extension',
         type: 'console_log',
-        payload: ['[tealium-extension] console bridge ready'],
+        payload: [safeSerialize(entry)],
         timestamp: new Date().toISOString(),
       },
       '*'
     );
-  } catch (err) {
-    // ignore
-  }
+  };
+
+  const wrapUtagDb = () => {
+    const utag = window.utag;
+    if (!utag || typeof utag.DB !== 'function') {
+      return false;
+    }
+    if (utag.DB.__tealiumWrapped) {
+      return true;
+    }
+
+    const original = utag.DB;
+    utag.DB = function (...args) {
+      const before = Array.isArray(utag.db_log) ? utag.db_log.length : 0;
+      const result = original.apply(this, args);
+      const after = Array.isArray(utag.db_log) ? utag.db_log.length : 0;
+
+      if (after > before) {
+        try {
+          postLog(utag.db_log[after - 1]);
+        } catch (err) {
+          // ignore
+        }
+      } else if (args.length) {
+        try {
+          postLog(args[0]);
+        } catch (err) {
+          // ignore
+        }
+      }
+
+      return result;
+    };
+    utag.DB.__tealiumWrapped = true;
+    return true;
+  };
+
+  const tryInstall = () => {
+    if (wrapUtagDb()) {
+      clearInterval(installTimer);
+    }
+  };
+
+  const installTimer = setInterval(tryInstall, 1000);
+  tryInstall();
+
 })();

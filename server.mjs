@@ -2,7 +2,7 @@
 import express from 'express';
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 app.post('/', (req, res) => {
   const payload = req.body || {};

@@ -14,6 +14,22 @@ function readUtagData() {
   return null;
 }
 
+let extensionValid = true;
+
+const safeSendMessage = (message) => {
+  if (!extensionValid) {
+    return;
+  }
+  try {
+    if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
+      return;
+    }
+    chrome.runtime.sendMessage(message);
+  } catch (err) {
+    extensionValid = false;
+  }
+};
+
 window.addEventListener('message', (event) => {
   if (event.source !== window || !event.data) {
     return;
@@ -21,11 +37,7 @@ window.addEventListener('message', (event) => {
   if (event.data.source !== 'tealium-extension' || event.data.type !== 'console_log') {
     return;
   }
-  console.log('[tealium-extension] content received console_log', event.data.payload);
-  if (!chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
-    return;
-  }
-  chrome.runtime.sendMessage({
+  safeSendMessage({
     type: 'console_log',
     payload: {
       url: location.href,
@@ -35,23 +47,27 @@ window.addEventListener('message', (event) => {
   });
 });
 
-if (chrome && chrome.runtime && chrome.runtime.onMessage) {
-  chrome.runtime.sendMessage({
-    type: 'content_ready',
-    url: location.href,
-  });
+try {
+  if (chrome && chrome.runtime && chrome.runtime.onMessage) {
+    safeSendMessage({
+      type: 'content_ready',
+      url: location.href,
+    });
 
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type !== 'get_utag') {
-      return;
-    }
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type !== 'get_utag') {
+        return;
+      }
 
-  const utag = readUtagData();
-  sendResponse({
-    utag: utag || {},
-    found: Boolean(utag),
-  });
-  });
+      const utag = readUtagData();
+      sendResponse({
+        utag: utag || {},
+        found: Boolean(utag),
+      });
+    });
+  }
+} catch (err) {
+  extensionValid = false;
 }
 
 // source: 'tealium-extension',

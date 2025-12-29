@@ -31,21 +31,15 @@ async function sendPayloadWithRetry(payload, label) {
     }
   }
 
-  console.error(
-    `[tealium-extension] Failed to send ${label} after retries`,
-    lastError
-  );
   return false;
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'content_ready') {
-    console.log('[tealium-extension] content_ready', message.url || '');
     return;
   }
 
   if (message.type === 'console_log') {
-    console.log('[tealium-extension] console_log received', message.payload);
     const logEntry = {
       source: 'tealium-extension-console',
       url: (sender.tab && sender.tab.url) || '',
@@ -65,17 +59,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       { target: { tabId }, files: ['console-bridge.js'], world: 'MAIN' },
       () => {
         if (chrome.runtime.lastError) {
-          console.log(
-            '[tealium-extension] console-bridge MAIN injection failed',
-            chrome.runtime.lastError.message
-          );
           chrome.scripting.executeScript(
             { target: { tabId }, files: ['console-bridge.js'] },
             () => {}
           );
           return;
         }
-        console.log('[tealium-extension] console-bridge MAIN injected');
       }
     );
   };
