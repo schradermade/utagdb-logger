@@ -16,7 +16,6 @@ function readUtagData() {
 
 let extensionValid = true;
 const ENABLED_KEY = 'enabled';
-
 const postEnabledState = (enabled) => {
   window.postMessage(
     {
@@ -63,7 +62,7 @@ window.addEventListener('message', (event) => {
     return;
   }
   if (event.data.type === 'console_log') {
-    safeSendMessage({
+    const message = {
       type: 'console_log',
       payload: {
         url: location.href,
@@ -71,18 +70,20 @@ window.addEventListener('message', (event) => {
         args: event.data.payload,
         sequence: event.data.sequence,
       },
-    });
+    };
+    safeSendMessage(message);
     return;
   }
   if (event.data.type === 'bridge_status') {
-    safeSendMessage({
+    const message = {
       type: 'bridge_status',
       payload: {
         url: location.href,
         timestamp: event.data.timestamp,
         status: event.data.payload,
       },
-    });
+    };
+    safeSendMessage(message);
   }
 });
 

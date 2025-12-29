@@ -12,6 +12,7 @@ const __dirname = path.dirname(__filename);
 const logsDir = path.join(__dirname, 'logs');
 const logPath = path.join(logsDir, 'tealium.log');
 const prettyLogPath = path.join(logsDir, 'tealium.pretty.log');
+const SEQ_GAP_TIMEOUT_MS = 5000;
 
 fs.mkdirSync(logsDir, { recursive: true });
 
@@ -22,9 +23,35 @@ const getConsoleState = (key, initialSeq) => {
     consoleStreams.set(key, {
       nextSeq: initialSeq,
       buffer: new Map(),
+      gapTimer: null,
     });
   }
   return consoleStreams.get(key);
+};
+
+const clearGapTimer = (state) => {
+  if (state.gapTimer) {
+    clearTimeout(state.gapTimer);
+    state.gapTimer = null;
+  }
+};
+
+const scheduleGapTimer = (state) => {
+  if (state.gapTimer) {
+    return;
+  }
+  state.gapTimer = setTimeout(() => {
+    state.gapTimer = null;
+    if (state.buffer.size === 0) {
+      return;
+    }
+    const sequences = Array.from(state.buffer.keys()).sort((a, b) => a - b);
+    state.nextSeq = sequences[0];
+    flushConsoleLogs(state, (entry) => {
+      writePayload(entry);
+      console.log('Console log:', entry);
+    });
+  }, SEQ_GAP_TIMEOUT_MS);
 };
 
 const flushConsoleLogs = (state, logFn) => {
@@ -34,35 +61,93 @@ const flushConsoleLogs = (state, logFn) => {
     logFn(entry);
     state.nextSeq += 1;
   }
+  if (state.buffer.size === 0) {
+    clearGapTimer(state);
+  }
+};
+
+const tryParseJson = (value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return value;
+  }
+  if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) {
+    return value;
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch (err) {
+    return value;
+  }
+};
+
+const buildPrettyPayload = (payload) => {
+  if (
+    payload &&
+    payload.console &&
+    Array.isArray(payload.console.args)
+  ) {
+    const nextPayload = {
+      ...payload,
+      console: {
+        ...payload.console,
+        args: payload.console.args.map(tryParseJson),
+      },
+    };
+    return nextPayload;
+  }
+  return payload;
+};
+
+const writePayload = (payload) => {
+  try {
+    fs.appendFileSync(logPath, `${JSON.stringify(payload)}\n`);
+    const prettyPayload = buildPrettyPayload(payload);
+    fs.appendFileSync(
+      prettyLogPath,
+      `${JSON.stringify(prettyPayload, null, 2)}\n`
+    );
+  } catch (err) {
+    console.error('Failed to write log:', err);
+  }
+};
+
+const handleConsolePayload = (payload) => {
+  const consolePayload = payload.console || {};
+  const sequence = consolePayload.sequence;
+  const streamKey = payload.url || consolePayload.url || 'unknown';
+
+  if (typeof sequence === 'number') {
+    const state = getConsoleState(streamKey, sequence);
+    if (sequence < state.nextSeq) {
+      writePayload(payload);
+      console.log('Console log:', payload);
+      return;
+    }
+    state.buffer.set(sequence, payload);
+    flushConsoleLogs(state, (entry) => {
+      writePayload(entry);
+      console.log('Console log:', entry);
+    });
+    if (!state.buffer.has(state.nextSeq)) {
+      scheduleGapTimer(state);
+    }
+    return;
+  }
+
+  writePayload(payload);
+  console.log('Console log:', payload);
 };
 
 app.post('/', (req, res) => {
   const payload = req.body || {};
-  try {
-    fs.appendFileSync(logPath, `${JSON.stringify(payload)}\n`);
-    fs.appendFileSync(prettyLogPath, `${JSON.stringify(payload, null, 2)}\n`);
-  } catch (err) {
-    console.error('Failed to write log:', err);
-  }
   if (payload.source === 'tealium-extension-console') {
-    const consolePayload = payload.console || {};
-    const sequence = consolePayload.sequence;
-    const streamKey = payload.url || consolePayload.url || 'unknown';
-
-    if (typeof sequence === 'number') {
-      const state = getConsoleState(streamKey, sequence);
-      if (sequence < state.nextSeq) {
-        console.log('Console log:', payload);
-      } else {
-        state.buffer.set(sequence, payload);
-        flushConsoleLogs(state, (entry) => {
-          console.log('Console log:', entry);
-        });
-      }
-    } else {
-      console.log('Console log:', payload);
-    }
+    handleConsolePayload(payload);
   } else {
+    writePayload(payload);
     console.log('Tealium payload:', payload);
   }
   res.status(200).json({ ok: true });

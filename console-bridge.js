@@ -16,8 +16,9 @@
   };
 
   let sequence = 0;
-  let enabled = false;
   let statusSent = false;
+  let enabled = false;
+  let lastDbIndex = 0;
 
   const postLog = (entry) => {
     window.postMessage(
@@ -48,6 +49,25 @@
     );
   };
 
+  const flushDbLog = () => {
+    const utag = window.utag;
+    if (!utag || !Array.isArray(utag.db_log)) {
+      return;
+    }
+    const total = utag.db_log.length;
+    if (total <= lastDbIndex) {
+      return;
+    }
+    for (let i = lastDbIndex; i < total; i += 1) {
+      try {
+        postLog(utag.db_log[i]);
+      } catch (err) {
+        // ignore
+      }
+    }
+    lastDbIndex = total;
+  };
+
   const wrapUtagDb = () => {
     if (!enabled) {
       return;
@@ -68,6 +88,7 @@
         noconsole: utag.cfg && utag.cfg.noconsole,
         dbLogLength: Array.isArray(utag.db_log) ? utag.db_log.length : null,
       });
+      flushDbLog();
       return;
     }
 
@@ -83,6 +104,7 @@
         } catch (err) {
           // ignore
         }
+        lastDbIndex = after;
       } else if (args.length) {
         try {
           postLog(args[0]);
@@ -101,6 +123,7 @@
       noconsole: utag.cfg && utag.cfg.noconsole,
       dbLogLength: Array.isArray(utag.db_log) ? utag.db_log.length : null,
     });
+    flushDbLog();
   };
 
   const ensureWrapped = () => {
@@ -117,7 +140,15 @@
     if (event.data.source !== 'tealium-extension' || event.data.type !== 'set_enabled') {
       return;
     }
-    enabled = Boolean(event.data.enabled);
+    const nextEnabled = Boolean(event.data.enabled);
+    if (nextEnabled && !enabled) {
+      lastDbIndex = 0;
+      enabled = true;
+      wrapUtagDb();
+      flushDbLog();
+      return;
+    }
+    enabled = nextEnabled;
   });
 
 })();
