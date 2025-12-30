@@ -68,7 +68,20 @@ A lightweight Chrome extension that captures `utag.DB` debug logs from a single 
 Example entry:
 
 ```json
-{"source":"tealium-extension-console","url":"https://example.com/","captured_at":"2025-12-30T03:22:20.247Z","session_id":"demo-2025-12-30T03:22:20.233Z","session_name":"demo","console":{"timestamp":"2025-12-30T03:22:20.200Z","args":["send:443:MAPPINGS"],"sequence":42}}
+{
+  "source": "tealium-extension-console",
+  "url": "https://example.com/",
+  "captured_at": "2025-12-30T03:22:20.247Z",
+  "session_id": "demo-2025-12-30T03:22:20.233Z",
+  "session_name": "demo",
+  "console": {
+    "timestamp": "2025-12-30T03:22:20.200Z",
+    "args": [
+      "send:443:MAPPINGS"
+    ],
+    "sequence": 42
+  }
+}
 ```
 
 ## How It Works
