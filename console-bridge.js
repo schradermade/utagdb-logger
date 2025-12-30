@@ -49,23 +49,12 @@
     );
   };
 
-  const flushDbLog = () => {
+  const syncDbIndex = () => {
     const utag = window.utag;
     if (!utag || !Array.isArray(utag.db_log)) {
       return;
     }
-    const total = utag.db_log.length;
-    if (total <= lastDbIndex) {
-      return;
-    }
-    for (let i = lastDbIndex; i < total; i += 1) {
-      try {
-        postLog(utag.db_log[i]);
-      } catch (err) {
-        // ignore
-      }
-    }
-    lastDbIndex = total;
+    lastDbIndex = utag.db_log.length;
   };
 
   const wrapUtagDb = () => {
@@ -88,10 +77,12 @@
         noconsole: utag.cfg && utag.cfg.noconsole,
         dbLogLength: Array.isArray(utag.db_log) ? utag.db_log.length : null,
       });
-      flushDbLog();
       return;
     }
 
+    if (Array.isArray(utag.db_log)) {
+      lastDbIndex = utag.db_log.length;
+    }
     const original = utag.DB;
     utag.DB = function (...args) {
       const before = Array.isArray(utag.db_log) ? utag.db_log.length : 0;
@@ -99,12 +90,14 @@
       const after = Array.isArray(utag.db_log) ? utag.db_log.length : 0;
 
       if (after > before) {
-        try {
-          postLog(utag.db_log[after - 1]);
-        } catch (err) {
-          // ignore
+        if (after > lastDbIndex) {
+          try {
+            postLog(utag.db_log[after - 1]);
+          } catch (err) {
+            // ignore
+          }
         }
-        lastDbIndex = after;
+        lastDbIndex = Math.max(lastDbIndex, after);
       } else if (args.length) {
         try {
           postLog(args[0]);
@@ -123,7 +116,6 @@
       noconsole: utag.cfg && utag.cfg.noconsole,
       dbLogLength: Array.isArray(utag.db_log) ? utag.db_log.length : null,
     });
-    flushDbLog();
   };
 
   const ensureWrapped = () => {
@@ -142,10 +134,9 @@
     }
     const nextEnabled = Boolean(event.data.enabled);
     if (nextEnabled && !enabled) {
-      lastDbIndex = 0;
       enabled = true;
+      syncDbIndex();
       wrapUtagDb();
-      flushDbLog();
       return;
     }
     enabled = nextEnabled;

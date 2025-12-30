@@ -12,9 +12,11 @@ const __dirname = path.dirname(__filename);
 const logsDir = path.join(__dirname, 'logs');
 const logPath = path.join(logsDir, 'tealium.log');
 const prettyLogPath = path.join(logsDir, 'tealium.pretty.log');
+const sessionsDir = path.join(logsDir, 'sessions');
 const SEQ_GAP_TIMEOUT_MS = 5000;
 
 fs.mkdirSync(logsDir, { recursive: true });
+fs.mkdirSync(sessionsDir, { recursive: true });
 
 const consoleStreams = new Map();
 
@@ -102,12 +104,27 @@ const buildPrettyPayload = (payload) => {
   return payload;
 };
 
+const toSafeFilename = (value) =>
+  String(value).replace(/[^a-zA-Z0-9._-]/g, '_');
+
+const getLogPaths = (payload) => {
+  if (payload && payload.session_id) {
+    const safeId = toSafeFilename(payload.session_id);
+    return {
+      log: path.join(sessionsDir, `${safeId}.log`),
+      pretty: path.join(sessionsDir, `${safeId}.pretty.log`),
+    };
+  }
+  return { log: logPath, pretty: prettyLogPath };
+};
+
 const writePayload = (payload) => {
   try {
-    fs.appendFileSync(logPath, `${JSON.stringify(payload)}\n`);
+    const paths = getLogPaths(payload);
+    fs.appendFileSync(paths.log, `${JSON.stringify(payload)}\n`);
     const prettyPayload = buildPrettyPayload(payload);
     fs.appendFileSync(
-      prettyLogPath,
+      paths.pretty,
       `${JSON.stringify(prettyPayload, null, 2)}\n`
     );
   } catch (err) {

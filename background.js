@@ -11,20 +11,10 @@ async function sendPayload(payload) {
 
 const RETRY_DELAYS_MS = [250, 500, 1000];
 const ENABLED_KEY = 'enabled';
+const SESSION_KEY = 'sessionId';
 
-const getEnabled = () =>
-  new Promise((resolve) => {
-    chrome.storage.local.get({ [ENABLED_KEY]: false }, (items) => {
-      resolve(Boolean(items[ENABLED_KEY]));
-    });
-  });
-
-const setEnabled = (value) =>
-  new Promise((resolve) => {
-    chrome.storage.local.set({ [ENABLED_KEY]: value }, () => {
-      resolve();
-    });
-  });
+const generateSessionId = () =>
+  `session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
 async function sendPayloadWithRetry(payload, label) {
   let lastError = null;
@@ -51,16 +41,55 @@ async function sendPayloadWithRetry(payload, label) {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'get_enabled') {
-    getEnabled().then((enabled) => {
-      sendResponse({ enabled });
-    });
+    chrome.storage.local.get(
+      { [ENABLED_KEY]: false, [SESSION_KEY]: null },
+      (items) => {
+        sendResponse({
+          enabled: Boolean(items[ENABLED_KEY]),
+          sessionId: items[SESSION_KEY],
+        });
+      }
+    );
     return true;
   }
 
   if (message.type === 'set_enabled') {
     const enabled = Boolean(message.enabled);
-    setEnabled(enabled).then(() => {
-      sendResponse({ ok: true });
+    if (enabled) {
+      const sessionId = generateSessionId();
+      chrome.storage.local.set(
+        { [ENABLED_KEY]: true, [SESSION_KEY]: sessionId },
+        () => {
+          const startEntry = {
+            source: 'tealium-extension-session',
+            event: 'start - turned extension on',
+            captured_at: new Date().toISOString(),
+            session_id: sessionId,
+          };
+          sendPayloadWithRetry(startEntry, 'session start').then(() => {
+            sendResponse({ ok: true });
+          });
+        }
+      );
+      return true;
+    }
+
+    chrome.storage.local.get({ [SESSION_KEY]: null }, (items) => {
+      const sessionId = items[SESSION_KEY];
+      const endEntry = {
+        source: 'tealium-extension-session',
+        event: 'end - turned extension off',
+        captured_at: new Date().toISOString(),
+        session_id: sessionId,
+      };
+      chrome.storage.local.set(
+        { [ENABLED_KEY]: false, [SESSION_KEY]: null },
+        () => {
+          sendPayloadWithRetry(endEntry, 'session end').then(() => {
+            sendResponse({ ok: true });
+          });
+        }
+      );
     });
     return true;
   }
@@ -70,96 +99,73 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'console_log') {
-    getEnabled().then((enabled) => {
-      if (!enabled) {
-        return;
+    chrome.storage.local.get(
+      { [ENABLED_KEY]: false, [SESSION_KEY]: null },
+      (items) => {
+        if (!items[ENABLED_KEY]) {
+          return;
+        }
+        const logEntry = {
+          source: 'tealium-extension-console',
+          url: (sender.tab && sender.tab.url) || '',
+          captured_at: new Date().toISOString(),
+          session_id: items[SESSION_KEY],
+          console: message.payload || {},
+        };
+        sendPayloadWithRetry(logEntry, 'console log');
       }
-      const logEntry = {
-        source: 'tealium-extension-console',
-        url: (sender.tab && sender.tab.url) || '',
-        captured_at: new Date().toISOString(),
-        console: message.payload || {},
-      };
-      sendPayloadWithRetry(logEntry, 'console log');
-    });
+    );
     return;
   }
 
   if (message.type === 'bridge_status') {
-    getEnabled().then((enabled) => {
-      if (!enabled) {
-        return;
+    chrome.storage.local.get(
+      { [ENABLED_KEY]: false, [SESSION_KEY]: null },
+      (items) => {
+        if (!items[ENABLED_KEY]) {
+          return;
+        }
+        const statusEntry = {
+          source: 'tealium-extension-status',
+          url: (sender.tab && sender.tab.url) || '',
+          captured_at: new Date().toISOString(),
+          session_id: items[SESSION_KEY],
+          status: message.payload || {},
+        };
+        sendPayloadWithRetry(statusEntry, 'bridge status');
       }
-      const statusEntry = {
-        source: 'tealium-extension-status',
-        url: (sender.tab && sender.tab.url) || '',
-        captured_at: new Date().toISOString(),
-        status: message.payload || {},
-      };
-      sendPayloadWithRetry(statusEntry, 'bridge status');
-    });
+    );
     return;
   }
 
   if (message.type !== 'send_utag') {
     return;
   }
-  getEnabled().then((enabled) => {
-    if (!enabled) {
-      sendResponse({ ok: false, error: 'Sending is disabled' });
-      return;
-    }
-
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const activeTab = tabs[0];
-      if (!activeTab || !activeTab.id) {
-        sendResponse({ ok: false, error: 'No active tab' });
+  chrome.storage.local.get(
+    { [ENABLED_KEY]: false, [SESSION_KEY]: null },
+    (items) => {
+      if (!items[ENABLED_KEY]) {
+        sendResponse({ ok: false, error: 'Sending is disabled' });
         return;
       }
 
-      if (!activeTab.url || !activeTab.url.startsWith('http')) {
-        sendResponse({ ok: false, error: 'Unsupported tab URL' });
-        return;
-      }
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const activeTab = tabs[0];
+        if (!activeTab || !activeTab.id) {
+          sendResponse({ ok: false, error: 'No active tab' });
+          return;
+        }
 
-      const requestUtag = () => {
-        chrome.tabs.sendMessage(
-          activeTab.id,
-          { type: 'get_utag' },
-          async (result) => {
-            if (chrome.runtime.lastError) {
-              sendResponse({
-                ok: false,
-                error: chrome.runtime.lastError.message,
-              });
-              return;
-            }
+        if (!activeTab.url || !activeTab.url.startsWith('http')) {
+          sendResponse({ ok: false, error: 'Unsupported tab URL' });
+          return;
+        }
 
-            const payload = {
-              source: 'tealium-extension',
-              url: activeTab.url || '',
-              captured_at: new Date().toISOString(),
-              utag: result && result.utag ? result.utag : {},
-            };
-
-            const ok = await sendPayloadWithRetry(payload, 'utag payload');
-            if (ok) {
-              sendResponse({ ok: true });
-              return;
-            }
-            sendResponse({
-              ok: false,
-              error: 'Failed to send payload after retries',
-            });
-          }
-        );
-      };
-
-      chrome.tabs.sendMessage(activeTab.id, { type: 'get_utag' }, () => {
-        if (chrome.runtime.lastError) {
-          chrome.scripting.executeScript(
-            { target: { tabId: activeTab.id }, files: ['content.js'] },
-            () => {
+        const requestUtag = () => {
+          chrome.tabs.sendMessage(
+            activeTab.id,
+            { type: 'get_utag' },
+            async (result) => {
               if (chrome.runtime.lastError) {
                 sendResponse({
                   ok: false,
@@ -167,15 +173,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 });
                 return;
               }
-              requestUtag();
+
+              const payload = {
+                source: 'tealium-extension',
+                url: activeTab.url || '',
+                captured_at: new Date().toISOString(),
+                session_id: items[SESSION_KEY],
+                utag: result && result.utag ? result.utag : {},
+              };
+
+              const ok = await sendPayloadWithRetry(payload, 'utag payload');
+              if (ok) {
+                sendResponse({ ok: true });
+                return;
+              }
+              sendResponse({
+                ok: false,
+                error: 'Failed to send payload after retries',
+              });
             }
           );
-          return;
-        }
-        requestUtag();
+        };
+
+        chrome.tabs.sendMessage(activeTab.id, { type: 'get_utag' }, () => {
+          if (chrome.runtime.lastError) {
+            chrome.scripting.executeScript(
+              { target: { tabId: activeTab.id }, files: ['content.js'] },
+              () => {
+                if (chrome.runtime.lastError) {
+                  sendResponse({
+                    ok: false,
+                    error: chrome.runtime.lastError.message,
+                  });
+                  return;
+                }
+                requestUtag();
+              }
+            );
+            return;
+          }
+          requestUtag();
+        });
       });
-    });
-  });
+    }
+  );
 
   return true;
 });
