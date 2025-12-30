@@ -109,11 +109,12 @@ const toSafeFilename = (value) =>
 
 const getLogPaths = (payload) => {
   if (payload && (payload.session_name || payload.session_id)) {
-    const rawName = payload.session_name || payload.session_id;
-    const safeId = toSafeFilename(rawName);
+    const rawName = payload.session_id || payload.session_name;
+    const safeName = toSafeFilename(rawName);
+    const fileStem = safeName;
     return {
-      log: path.join(sessionsDir, `${safeId}.log`),
-      pretty: path.join(sessionsDir, `${safeId}.pretty.log`),
+      log: path.join(sessionsDir, `${fileStem}.log`),
+      pretty: path.join(sessionsDir, `${fileStem}.pretty.log`),
     };
   }
   return { log: logPath, pretty: prettyLogPath };

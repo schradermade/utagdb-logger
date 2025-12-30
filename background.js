@@ -14,8 +14,10 @@ const ENABLED_KEY = 'enabled';
 const SESSION_KEY = 'sessionId';
 const FILENAME_KEY = 'sessionFilename';
 
-const generateSessionId = () =>
-  `session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+const generateSessionId = (name) => {
+  const baseName = name && name.trim() ? name.trim() : 'session';
+  return `${baseName}-${new Date().toISOString()}`;
+};
 
 async function sendPayloadWithRetry(payload, label) {
   let lastError = null;
@@ -60,7 +62,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const filename =
       typeof message.filename === 'string' ? message.filename.trim() : '';
     if (enabled) {
-      const sessionId = generateSessionId();
+      const sessionId = generateSessionId(filename);
       chrome.storage.local.set(
         {
           [ENABLED_KEY]: true,
