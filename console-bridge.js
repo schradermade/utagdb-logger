@@ -16,7 +16,6 @@
   };
 
   let sequence = 0;
-  let statusSent = false;
   let enabled = false;
   let lastDbIndex = 0;
 
@@ -28,22 +27,6 @@
         payload: [safeSerialize(entry)],
         timestamp: new Date().toISOString(),
         sequence: sequence++,
-      },
-      '*'
-    );
-  };
-
-  const postStatus = (status) => {
-    if (statusSent) {
-      return;
-    }
-    statusSent = true;
-    window.postMessage(
-      {
-        source: 'tealium-extension',
-        type: 'bridge_status',
-        payload: status,
-        timestamp: new Date().toISOString(),
       },
       '*'
     );
@@ -63,20 +46,9 @@
     }
     const utag = window.utag;
     if (!utag || typeof utag.DB !== 'function') {
-      postStatus({
-        ok: false,
-        reason: 'utag.DB not available',
-      });
       return;
     }
     if (utag.DB.__tealiumWrapped) {
-      postStatus({
-        ok: true,
-        wrapped: true,
-        utagdb: utag.cfg && utag.cfg.utagdb,
-        noconsole: utag.cfg && utag.cfg.noconsole,
-        dbLogLength: Array.isArray(utag.db_log) ? utag.db_log.length : null,
-      });
       return;
     }
 
@@ -109,13 +81,6 @@
       return result;
     };
     utag.DB.__tealiumWrapped = true;
-    postStatus({
-      ok: true,
-      wrapped: true,
-      utagdb: utag.cfg && utag.cfg.utagdb,
-      noconsole: utag.cfg && utag.cfg.noconsole,
-      dbLogLength: Array.isArray(utag.db_log) ? utag.db_log.length : null,
-    });
   };
 
   const ensureWrapped = () => {

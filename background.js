@@ -13,6 +13,9 @@ const RETRY_DELAYS_MS = [250, 500, 1000];
 const ENABLED_KEY = 'enabled';
 const SESSION_KEY = 'sessionId';
 const FILENAME_KEY = 'sessionFilename';
+const COUNT_KEY = 'sessionLogCount';
+let currentSessionId = null;
+let currentCount = null;
 
 const generateSessionId = (name) => {
   const baseName = name && name.trim() ? name.trim() : 'session';
@@ -45,12 +48,18 @@ async function sendPayloadWithRetry(payload, label) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'get_enabled') {
     chrome.storage.local.get(
-      { [ENABLED_KEY]: false, [SESSION_KEY]: null, [FILENAME_KEY]: '' },
+      {
+        [ENABLED_KEY]: false,
+        [SESSION_KEY]: null,
+        [FILENAME_KEY]: '',
+        [COUNT_KEY]: 0,
+      },
       (items) => {
         sendResponse({
           enabled: Boolean(items[ENABLED_KEY]),
           sessionId: items[SESSION_KEY],
           filename: items[FILENAME_KEY],
+          logCount: items[COUNT_KEY],
         });
       }
     );
@@ -63,11 +72,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       typeof message.filename === 'string' ? message.filename.trim() : '';
     if (enabled) {
       const sessionId = generateSessionId(filename);
+      currentSessionId = sessionId;
+      currentCount = 1;
       chrome.storage.local.set(
         {
           [ENABLED_KEY]: true,
           [SESSION_KEY]: sessionId,
           [FILENAME_KEY]: filename,
+          [COUNT_KEY]: 1,
         },
         () => {
           const startEntry = {
@@ -90,6 +102,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       (items) => {
         const sessionId = items[SESSION_KEY];
         const storedFilename = items[FILENAME_KEY];
+        const nextCount = (currentCount || 0) + 1;
+        currentCount = nextCount;
+        chrome.storage.local.set({ [COUNT_KEY]: nextCount }, () => {});
         const endEntry = {
           source: 'tealium-extension-session',
           event: 'end - turned extension off',
@@ -98,8 +113,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           session_name: storedFilename || undefined,
         };
         chrome.storage.local.set(
-          { [ENABLED_KEY]: false, [SESSION_KEY]: null },
+          {
+            [ENABLED_KEY]: false,
+            [SESSION_KEY]: null,
+            [FILENAME_KEY]: '',
+          },
           () => {
+            currentSessionId = null;
+            currentCount = null;
             sendPayloadWithRetry(endEntry, 'session end').then(() => {
               sendResponse({ ok: true });
             });
@@ -116,11 +137,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === 'console_log') {
     chrome.storage.local.get(
-      { [ENABLED_KEY]: false, [SESSION_KEY]: null, [FILENAME_KEY]: '' },
+      {
+        [ENABLED_KEY]: false,
+        [SESSION_KEY]: null,
+        [FILENAME_KEY]: '',
+        [COUNT_KEY]: 0,
+      },
       (items) => {
         if (!items[ENABLED_KEY]) {
           return;
         }
+        if (currentSessionId !== items[SESSION_KEY]) {
+          currentSessionId = items[SESSION_KEY];
+          currentCount = items[COUNT_KEY] || 0;
+        }
+        currentCount = (currentCount || 0) + 1;
+        chrome.storage.local.set({ [COUNT_KEY]: currentCount }, () => {});
         const logEntry = {
           source: 'tealium-extension-console',
           url: (sender.tab && sender.tab.url) || '',
@@ -136,23 +168,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'bridge_status') {
-    chrome.storage.local.get(
-      { [ENABLED_KEY]: false, [SESSION_KEY]: null, [FILENAME_KEY]: '' },
-      (items) => {
-        if (!items[ENABLED_KEY]) {
-          return;
-        }
-        const statusEntry = {
-          source: 'tealium-extension-status',
-          url: (sender.tab && sender.tab.url) || '',
-          captured_at: new Date().toISOString(),
-          session_id: items[SESSION_KEY],
-          session_name: items[FILENAME_KEY] || undefined,
-          status: message.payload || {},
-        };
-        sendPayloadWithRetry(statusEntry, 'bridge status');
-      }
-    );
     return;
   }
 

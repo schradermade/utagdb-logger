@@ -75,15 +75,7 @@ window.addEventListener('message', (event) => {
     return;
   }
   if (event.data.type === 'bridge_status') {
-    const message = {
-      type: 'bridge_status',
-      payload: {
-        url: location.href,
-        timestamp: event.data.timestamp,
-        status: event.data.payload,
-      },
-    };
-    safeSendMessage(message);
+    return;
   }
 });
 

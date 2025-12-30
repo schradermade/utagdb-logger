@@ -2,73 +2,176 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Tealium Data Sender</title>
+    <title>Tealium Debug Logger</title>
     <style>
       body {
         font-family: Arial, sans-serif;
-        margin: 12px;
-        min-width: 240px;
+        margin: 0;
+        padding: 0;
+        min-width: 340px;
+        background: #1f1f1f;
+        color: #e6e6e6;
       }
-      .status {
-        margin-top: 8px;
-        font-size: 12px;
+      .header {
+        background: #252525;
+        padding: 12px 16px;
+        margin: 0 0 16px;
+      }
+      .content {
+        padding: 0 16px 16px;
+      }
+      .title {
+        font-size: 15px;
+        font-weight: 500;
+        margin: 0;
+        color: #f1f1f1;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
       }
       .field {
         display: flex;
         flex-direction: column;
         gap: 6px;
-        margin-bottom: 10px;
+        margin-bottom: 14px;
         font-size: 12px;
+      }
+      .field.hidden {
+        display: none;
+      }
+      .field-error {
+        font-size: 11px;
+        color: #ff6b6b;
+      }
+      .field-error.hidden {
+        display: none;
       }
       .field input {
         padding: 6px 8px;
         font-size: 13px;
+        background: #2a2a2a;
+        color: #e6e6e6;
+        border: 1px solid #3a3a3a;
       }
-      .toggle {
+      .record {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 20px;
+        border: 1px solid #3a3a3a;
+        background: #2b2b2b;
+        color: #d0d0d0;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 10px;
-        font-size: 14px;
+        justify-content: center;
+        gap: 8px;
       }
-      .toggle input {
-        appearance: none;
-        width: 38px;
-        height: 20px;
-        background: #bbb;
-        border-radius: 12px;
-        position: relative;
-        outline: none;
-        cursor: pointer;
+      .record.recording {
+        background: #e53935;
+        border-color: #c62828;
+        color: #fff;
+        animation: slowblink 1.8s ease-in-out infinite;
       }
-      .toggle input::after {
-        content: '';
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 16px;
-        height: 16px;
-        background: #fff;
+      .record .icon {
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
-        transition: transform 0.2s ease;
+        background: #6b6b6b;
+        display: inline-block;
       }
-      .toggle input:checked {
-        background: #2a7b2a;
+      .record.recording .icon {
+        border-radius: 2px;
+        width: 12px;
+        height: 12px;
+        background: #ffebee;
       }
-      .toggle input:checked::after {
-        transform: translateX(18px);
+      .record:active {
+        transform: scale(0.96);
+      }
+      .status {
+        margin-top: 14px;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .destination {
+        margin-top: 14px;
+        font-size: 13px;
+        color: #7bd88f;
+      }
+      .destination.hidden {
+        display: none;
+      }
+      .saving-value {
+        margin-top: 4px;
+        background: #2a2a2a;
+        padding: 6px 8px;
+        border-radius: 6px;
+        color: #e6e6e6;
+        word-break: break-all;
+      }
+      .completed-label {
+        margin-top: 8px;
+      }
+      .completed-title {
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #7bd88f;
+      }
+      .completed-block {
+        padding-top: 8px;
+        border-top: 1px solid #3a3a3a;
+      }
+      @keyframes slowblink {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.55;
+        }
+        100% {
+          opacity: 1;
+        }
       }
     </style>
   </head>
   <body>
-    <label class="field">
-      <span>Log filename</span>
-      <input id="filename" type="text" placeholder="session name" />
-    </label>
-    <label class="toggle">
-      <input id="enabled" type="checkbox" />
-      <span>Send Tealium Data</span>
-    </label>
-    <div id="status" class="status"></div>
+    <div class="header">
+      <div class="title">Tealium utag.DB Logger</div>
+    </div>
+    <div class="content">
+      <label id="filename-field" class="field">
+        <span>Save log as</span>
+        <input id="filename" type="text" placeholder="Enter name" required />
+        <span id="filename-error" class="field-error hidden">Filename is required</span>
+      </label>
+      <button id="record" class="record" type="button">
+        <span class="icon" aria-hidden="true"></span>
+        <span id="record-label">Start recording</span>
+      </button>
+      <div id="destination" class="destination hidden">
+        <div>Sending to:</div>
+        <div id="destination-value" class="saving-value"></div>
+      </div>
+      <div id="saving" class="destination hidden">
+        <div>Saving to log file:</div>
+        <div id="saving-value" class="saving-value"></div>
+      </div>
+      <div id="count" class="destination hidden">
+        <div>Logs sent:</div>
+        <div id="count-value" class="saving-value"></div>
+      </div>
+      <div id="completed" class="destination hidden completed-block">
+        <div class="completed-title">SESSION COMPLETED</div>
+        <div>Sent to:</div>
+        <div id="completed-sent" class="saving-value"></div>
+        <div class="completed-label">Saved to log file:</div>
+        <div id="completed-saved" class="saving-value"></div>
+        <div class="completed-label">Logs sent:</div>
+        <div id="completed-count" class="saving-value"></div>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
     <script src="popup.js"></script>
   </body>
 </html>
