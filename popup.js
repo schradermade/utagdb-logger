@@ -1,4 +1,5 @@
 const toggle = document.getElementById('enabled');
+const filenameInput = document.getElementById('filename');
 const statusEl = document.getElementById('status');
 
 function setStatus(text, isError) {
@@ -24,7 +25,13 @@ const sendUtag = () => {
 };
 
 const setEnabled = (enabled) => {
-  chrome.runtime.sendMessage({ type: 'set_enabled', enabled }, (response) => {
+  chrome.runtime.sendMessage(
+    {
+      type: 'set_enabled',
+      enabled,
+      filename: filenameInput.value.trim(),
+    },
+    (response) => {
     if (chrome.runtime.lastError) {
       setStatus(chrome.runtime.lastError.message, true);
       return;
@@ -38,7 +45,8 @@ const setEnabled = (enabled) => {
     } else {
       setStatus('Sending disabled', false);
     }
-  });
+    }
+  );
 };
 
 chrome.runtime.sendMessage({ type: 'get_enabled' }, (response) => {
@@ -48,6 +56,9 @@ chrome.runtime.sendMessage({ type: 'get_enabled' }, (response) => {
   }
   const enabled = response && response.enabled;
   toggle.checked = Boolean(enabled);
+  if (response && response.filename) {
+    filenameInput.value = response.filename;
+  }
   setStatus(enabled ? 'Sending enabled' : 'Sending disabled', false);
 });
 

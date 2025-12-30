@@ -108,8 +108,9 @@ const toSafeFilename = (value) =>
   String(value).replace(/[^a-zA-Z0-9._-]/g, '_');
 
 const getLogPaths = (payload) => {
-  if (payload && payload.session_id) {
-    const safeId = toSafeFilename(payload.session_id);
+  if (payload && (payload.session_name || payload.session_id)) {
+    const rawName = payload.session_name || payload.session_id;
+    const safeId = toSafeFilename(rawName);
     return {
       log: path.join(sessionsDir, `${safeId}.log`),
       pretty: path.join(sessionsDir, `${safeId}.pretty.log`),

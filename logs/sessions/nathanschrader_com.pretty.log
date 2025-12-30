@@ -1,0 +1,15 @@
+{
+  "source": "tealium-extension-session",
+  "event": "start - turned extension on",
+  "captured_at": "2025-12-30T00:53:03.696Z",
+  "session_id": "session-1767055983696-npt82u5o",
+  "session_name": "nathanschrader_com"
+}
+{
+  "source": "tealium-extension",
+  "url": "http://localhost:3000/shoes/nike-air-max-90",
+  "captured_at": "2025-12-30T00:53:03.740Z",
+  "session_id": "session-1767055983696-npt82u5o",
+  "session_name": "nathanschrader_com",
+  "utag": {}
+}

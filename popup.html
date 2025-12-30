@@ -13,6 +13,17 @@
         margin-top: 8px;
         font-size: 12px;
       }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 10px;
+        font-size: 12px;
+      }
+      .field input {
+        padding: 6px 8px;
+        font-size: 13px;
+      }
       .toggle {
         display: flex;
         align-items: center;
@@ -49,6 +60,10 @@
     </style>
   </head>
   <body>
+    <label class="field">
+      <span>Log filename</span>
+      <input id="filename" type="text" placeholder="session name" />
+    </label>
     <label class="toggle">
       <input id="enabled" type="checkbox" />
       <span>Send Tealium Data</span>
