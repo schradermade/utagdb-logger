@@ -6,6 +6,31 @@
 
   const safeSerialize = (value) => {
     try {
+      if (value instanceof Error) {
+        const payload = {
+          name: value.name,
+          message: value.message,
+          stack: value.stack,
+        };
+        if ('cause' in value) {
+          try {
+            if (value.cause instanceof Error) {
+              payload.cause = {
+                name: value.cause.name,
+                message: value.cause.message,
+                stack: value.cause.stack,
+              };
+            } else if (typeof value.cause === 'string') {
+              payload.cause = value.cause;
+            } else {
+              payload.cause = JSON.parse(JSON.stringify(value.cause));
+            }
+          } catch (err) {
+            payload.cause = String(value.cause);
+          }
+        }
+        return JSON.stringify(payload);
+      }
       if (typeof value === 'string') {
         return value;
       }
@@ -18,8 +43,9 @@
   let sequence = 0;
   let enabled = false;
   let lastDbIndex = 0;
+  let dbGeneration = 0;
 
-  const postLog = (entry) => {
+  const postLog = (entry, meta = {}) => {
     window.postMessage(
       {
         source: 'tealium-extension',
@@ -27,9 +53,33 @@
         payload: [safeSerialize(entry)],
         timestamp: new Date().toISOString(),
         sequence: sequence++,
+        db_index:
+          typeof meta.dbIndex === 'number' ? meta.dbIndex : undefined,
+        db_generation:
+          typeof meta.dbGeneration === 'number' ? meta.dbGeneration : undefined,
       },
       '*'
     );
+  };
+
+  const drainDbLog = () => {
+    const utag = window.utag;
+    if (!utag || !Array.isArray(utag.db_log)) {
+      return;
+    }
+    const total = utag.db_log.length;
+    if (total < lastDbIndex) {
+      lastDbIndex = 0;
+      dbGeneration += 1;
+    }
+    for (let i = lastDbIndex; i < total; i += 1) {
+      try {
+        postLog(utag.db_log[i], { dbIndex: i, dbGeneration });
+      } catch (err) {
+        // ignore
+      }
+    }
+    lastDbIndex = total;
   };
 
   const syncDbIndex = () => {
@@ -52,25 +102,11 @@
       return;
     }
 
-    if (Array.isArray(utag.db_log)) {
-      lastDbIndex = utag.db_log.length;
-    }
     const original = utag.DB;
     utag.DB = function (...args) {
-      const before = Array.isArray(utag.db_log) ? utag.db_log.length : 0;
       const result = original.apply(this, args);
-      const after = Array.isArray(utag.db_log) ? utag.db_log.length : 0;
-
-      if (after > before) {
-        if (after > lastDbIndex) {
-          try {
-            postLog(utag.db_log[after - 1]);
-          } catch (err) {
-            // ignore
-          }
-        }
-        lastDbIndex = Math.max(lastDbIndex, after);
-      } else if (args.length) {
+      drainDbLog();
+      if (args.length && !Array.isArray(utag.db_log)) {
         try {
           postLog(args[0]);
         } catch (err) {
@@ -88,7 +124,12 @@
   };
 
   ensureWrapped();
-  setInterval(ensureWrapped, 1000);
+  setInterval(() => {
+    ensureWrapped();
+    if (enabled) {
+      drainDbLog();
+    }
+  }, 1000);
 
   window.addEventListener('message', (event) => {
     if (event.source !== window || !event.data) {

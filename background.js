@@ -16,6 +16,7 @@ const FILENAME_KEY = 'sessionFilename';
 const COUNT_KEY = 'sessionLogCount';
 let currentSessionId = null;
 let currentCount = null;
+const consoleSendQueues = new Map();
 
 const generateSessionId = (name) => {
   const baseName = name && name.trim() ? name.trim() : 'session';
@@ -44,6 +45,19 @@ async function sendPayloadWithRetry(payload, label) {
 
   return false;
 }
+
+const enqueueConsoleSend = (key, payload) => {
+  const prev = consoleSendQueues.get(key) || Promise.resolve();
+  const next = prev
+    .catch(() => {})
+    .then(() => sendPayloadWithRetry(payload, 'console log'));
+  consoleSendQueues.set(key, next);
+  next.finally(() => {
+    if (consoleSendQueues.get(key) === next) {
+      consoleSendQueues.delete(key);
+    }
+  });
+};
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'get_enabled') {
@@ -147,10 +161,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!items[ENABLED_KEY]) {
           return;
         }
-        if (currentSessionId !== items[SESSION_KEY]) {
-          currentSessionId = items[SESSION_KEY];
-          currentCount = items[COUNT_KEY] || 0;
-        }
+      if (currentSessionId !== items[SESSION_KEY]) {
+        currentSessionId = items[SESSION_KEY];
+        currentCount = items[COUNT_KEY] || 0;
+      }
         currentCount = (currentCount || 0) + 1;
         chrome.storage.local.set({ [COUNT_KEY]: currentCount }, () => {});
         const logEntry = {
@@ -161,7 +175,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           session_name: items[FILENAME_KEY] || undefined,
           console: message.payload || {},
         };
-        sendPayloadWithRetry(logEntry, 'console log');
+        const queueKey = `${items[SESSION_KEY] || 'no-session'}::${logEntry.url}`;
+        enqueueConsoleSend(queueKey, logEntry);
       }
     );
     return;

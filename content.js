@@ -69,6 +69,8 @@ window.addEventListener('message', (event) => {
         timestamp: event.data.timestamp,
         args: event.data.payload,
         sequence: event.data.sequence,
+        db_index: event.data.db_index,
+        db_generation: event.data.db_generation,
       },
     };
     safeSendMessage(message);

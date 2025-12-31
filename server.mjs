@@ -13,59 +13,46 @@ const logsDir = path.join(__dirname, 'logs');
 const logPath = path.join(logsDir, 'tealium.log');
 const prettyLogPath = path.join(logsDir, 'tealium.pretty.log');
 const sessionsDir = path.join(logsDir, 'sessions');
-const SEQ_GAP_TIMEOUT_MS = 5000;
+const DB_ORDER_MULTIPLIER = 1_000_000_000;
 
 fs.mkdirSync(logsDir, { recursive: true });
 fs.mkdirSync(sessionsDir, { recursive: true });
 
-const consoleStreams = new Map();
+const consoleBuffers = new Map();
 
-const getConsoleState = (key, initialSeq) => {
-  if (!consoleStreams.has(key)) {
-    consoleStreams.set(key, {
-      nextSeq: initialSeq,
-      buffer: new Map(),
-      gapTimer: null,
-    });
+const getConsoleBuffer = (key) => {
+  if (!consoleBuffers.has(key)) {
+    consoleBuffers.set(key, []);
   }
-  return consoleStreams.get(key);
+  return consoleBuffers.get(key);
 };
 
-const clearGapTimer = (state) => {
-  if (state.gapTimer) {
-    clearTimeout(state.gapTimer);
-    state.gapTimer = null;
-  }
-};
-
-const scheduleGapTimer = (state) => {
-  if (state.gapTimer) {
+const flushConsoleBuffer = (key) => {
+  const buffer = consoleBuffers.get(key);
+  if (!buffer || buffer.length === 0) {
+    consoleBuffers.delete(key);
     return;
   }
-  state.gapTimer = setTimeout(() => {
-    state.gapTimer = null;
-    if (state.buffer.size === 0) {
-      return;
+  buffer.sort((a, b) => {
+    const aHas = typeof a.orderKey === 'number';
+    const bHas = typeof b.orderKey === 'number';
+    if (aHas && bHas) {
+      return a.orderKey - b.orderKey;
     }
-    const sequences = Array.from(state.buffer.keys()).sort((a, b) => a - b);
-    state.nextSeq = sequences[0];
-    flushConsoleLogs(state, (entry) => {
-      writePayload(entry);
-      console.log('Console log:', entry);
-    });
-  }, SEQ_GAP_TIMEOUT_MS);
-};
-
-const flushConsoleLogs = (state, logFn) => {
-  while (state.buffer.has(state.nextSeq)) {
-    const entry = state.buffer.get(state.nextSeq);
-    state.buffer.delete(state.nextSeq);
-    logFn(entry);
-    state.nextSeq += 1;
-  }
-  if (state.buffer.size === 0) {
-    clearGapTimer(state);
-  }
+    if (aHas) return -1;
+    if (bHas) return 1;
+    const aSeq = typeof a.sequence === 'number' ? a.sequence : null;
+    const bSeq = typeof b.sequence === 'number' ? b.sequence : null;
+    if (aSeq !== null && bSeq !== null) {
+      return aSeq - bSeq;
+    }
+    return a.index - b.index;
+  });
+  buffer.forEach((entry) => {
+    writePayload(entry.payload);
+    console.log('Console log:', entry.payload);
+  });
+  consoleBuffers.delete(key);
 };
 
 const tryParseJson = (value) => {
@@ -137,34 +124,41 @@ const writePayload = (payload) => {
 const handleConsolePayload = (payload) => {
   const consolePayload = payload.console || {};
   const sequence = consolePayload.sequence;
-  const streamKey = payload.url || consolePayload.url || 'unknown';
-
-  if (typeof sequence === 'number') {
-    const state = getConsoleState(streamKey, sequence);
-    if (sequence < state.nextSeq) {
-      writePayload(payload);
-      console.log('Console log:', payload);
-      return;
-    }
-    state.buffer.set(sequence, payload);
-    flushConsoleLogs(state, (entry) => {
-      writePayload(entry);
-      console.log('Console log:', entry);
-    });
-    if (!state.buffer.has(state.nextSeq)) {
-      scheduleGapTimer(state);
-    }
-    return;
-  }
-
-  writePayload(payload);
-  console.log('Console log:', payload);
+  const streamKey = `${payload.session_id || 'no-session'}::${payload.url || consolePayload.url || 'unknown'}`;
+  const dbIndex = consolePayload.db_index;
+  const dbGeneration = consolePayload.db_generation;
+  const dbOrder =
+    typeof dbIndex === 'number' && typeof dbGeneration === 'number'
+      ? dbGeneration * DB_ORDER_MULTIPLIER + dbIndex
+      : null;
+  const orderKey = typeof dbOrder === 'number' ? dbOrder : null;
+  const buffer = getConsoleBuffer(streamKey);
+  buffer.push({
+    payload,
+    orderKey,
+    sequence,
+    index: buffer.length,
+  });
 };
 
 app.post('/', (req, res) => {
   const payload = req.body || {};
   if (payload.source === 'tealium-extension-console') {
     handleConsolePayload(payload);
+  } else if (
+    payload.source === 'tealium-extension-session' &&
+    typeof payload.event === 'string' &&
+    payload.event.startsWith('end')
+  ) {
+    const flushKey = `${payload.session_id || 'no-session'}::unknown`;
+    flushConsoleBuffer(flushKey);
+    for (const key of consoleBuffers.keys()) {
+      if (key.startsWith(`${payload.session_id || 'no-session'}::`)) {
+        flushConsoleBuffer(key);
+      }
+    }
+    writePayload(payload);
+    console.log('Tealium payload:', payload);
   } else {
     writePayload(payload);
     console.log('Tealium payload:', payload);
