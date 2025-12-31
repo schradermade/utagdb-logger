@@ -6,6 +6,10 @@ const featureSections = new Map([
   ['payloads', document.getElementById('feature-payloads')],
   ['consent', document.getElementById('feature-consent')],
   ['network', document.getElementById('feature-network')],
+  ['events', document.getElementById('feature-events')],
+  ['storage', document.getElementById('feature-storage')],
+  ['qa', document.getElementById('feature-qa')],
+  ['export', document.getElementById('feature-export')],
 ]);
 
 const setActiveFeature = (feature) => {
