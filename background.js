@@ -9,6 +9,10 @@ async function sendPayload(payload) {
   return response.ok;
 }
 
+if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+}
+
 const RETRY_DELAYS_MS = [250, 500, 1000];
 const ENABLED_KEY = 'enabled';
 const SESSION_KEY = 'sessionId';
