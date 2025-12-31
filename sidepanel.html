@@ -20,6 +20,68 @@
       .content {
         padding: 0 16px 16px;
       }
+      .feature-nav {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 14px;
+        flex-wrap: nowrap;
+        align-items: stretch;
+      }
+      .feature-card {
+        border: 1px solid #2c2c2c;
+        background: #1f1f1f;
+        color: #e6e6e6;
+        padding: 6px 4px;
+        border-radius: 10px;
+        text-align: center;
+        cursor: pointer;
+        min-height: 56px;
+        flex: 1 1 0;
+        min-width: 44px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        transition: transform 0.08s ease, border-color 0.2s ease;
+        align-items: center;
+        justify-content: center;
+      }
+      .feature-card:active {
+        transform: scale(0.98);
+      }
+      .feature-card.active {
+        border-color: #7bd88f;
+        box-shadow: 0 0 0 1px #7bd88f inset;
+      }
+      .feature-card:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .feature-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 5px;
+        background: #272727;
+        display: grid;
+        place-items: center;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        font-size: 9px;
+        color: #9ad3a7;
+      }
+      .feature-title {
+        font-size: 9px;
+        font-weight: 600;
+        line-height: 1.1;
+      }
+      .feature-subtitle {
+        display: none;
+      }
+      .feature-section {
+        display: none;
+      }
+      .feature-section.active {
+        display: block;
+      }
       .title {
         font-size: 15px;
         font-weight: 500;
@@ -137,41 +199,97 @@
   </head>
   <body>
     <div class="header">
-      <div class="title">Tealium utag.DB Logger</div>
+      <div class="title">Tealium Tools</div>
     </div>
     <div class="content">
-      <label id="filename-field" class="field">
-        <span>Save log as</span>
-        <input id="filename" type="text" placeholder="Enter name" required />
-        <span id="filename-error" class="field-error hidden">Filename is required</span>
-      </label>
-      <button id="record" class="record" type="button">
-        <span class="icon" aria-hidden="true"></span>
-        <span id="record-label">Start recording</span>
-      </button>
-      <div id="destination" class="destination hidden">
-        <div>Sending to:</div>
-        <div id="destination-value" class="saving-value"></div>
+      <div class="feature-nav" role="tablist" aria-label="Features">
+        <button class="feature-card active" type="button" data-feature="logger" aria-selected="true">
+          <span class="feature-icon" aria-hidden="true">DB</span>
+          <span class="feature-title">utag.db Logger</span>
+          <span class="feature-subtitle">Capture debug stream</span>
+        </button>
+        <button class="feature-card" type="button" data-feature="session" aria-selected="false">
+          <span class="feature-icon" aria-hidden="true">SS</span>
+          <span class="feature-title">Session Viewer</span>
+          <span class="feature-subtitle">Inspect session data</span>
+        </button>
+        <button class="feature-card" type="button" data-feature="rules" aria-selected="false">
+          <span class="feature-icon" aria-hidden="true">LR</span>
+          <span class="feature-title">Load Rules</span>
+          <span class="feature-subtitle">Trace rule outcomes</span>
+        </button>
+        <button class="feature-card" type="button" data-feature="payloads" aria-selected="false">
+          <span class="feature-icon" aria-hidden="true">PL</span>
+          <span class="feature-title">Payload Lab</span>
+          <span class="feature-subtitle">Preview send payloads</span>
+        </button>
+        <button class="feature-card" type="button" data-feature="consent" aria-selected="false">
+          <span class="feature-icon" aria-hidden="true">CO</span>
+          <span class="feature-title">Consent Monitor</span>
+          <span class="feature-subtitle">Track consent state</span>
+        </button>
+        <button class="feature-card" type="button" data-feature="network" aria-selected="false">
+          <span class="feature-icon" aria-hidden="true">NW</span>
+          <span class="feature-title">Network Watch</span>
+          <span class="feature-subtitle">Observe tag calls</span>
+        </button>
       </div>
-      <div id="saving" class="destination hidden">
-        <div>Saving to log file:</div>
-        <div id="saving-value" class="saving-value"></div>
-      </div>
-      <div id="count" class="destination hidden">
-        <div>Logs sent:</div>
-        <div id="count-value" class="saving-value"></div>
-      </div>
-      <div id="completed" class="destination hidden completed-block">
-        <div class="completed-title">SESSION COMPLETED</div>
-        <div>Sent to:</div>
-        <div id="completed-sent" class="saving-value"></div>
-        <div class="completed-label">Saved to log file:</div>
-        <div id="completed-saved" class="saving-value"></div>
-        <div class="completed-label">Logs sent:</div>
-        <div id="completed-count" class="saving-value"></div>
-      </div>
-      <div id="status" class="status"></div>
+
+      <section id="feature-logger" class="feature-section active" role="tabpanel">
+        <label id="filename-field" class="field">
+          <span>Save log as</span>
+          <input id="filename" type="text" placeholder="Enter name" required />
+          <span id="filename-error" class="field-error hidden">Filename is required</span>
+        </label>
+        <button id="record" class="record" type="button">
+          <span class="icon" aria-hidden="true"></span>
+          <span id="record-label">Start recording</span>
+        </button>
+        <div id="destination" class="destination hidden">
+          <div>Sending to:</div>
+          <div id="destination-value" class="saving-value"></div>
+        </div>
+        <div id="saving" class="destination hidden">
+          <div>Saving to log file:</div>
+          <div id="saving-value" class="saving-value"></div>
+        </div>
+        <div id="count" class="destination hidden">
+          <div>Logs sent:</div>
+          <div id="count-value" class="saving-value"></div>
+        </div>
+        <div id="completed" class="destination hidden completed-block">
+          <div class="completed-title">SESSION COMPLETED</div>
+          <div>Sent to:</div>
+          <div id="completed-sent" class="saving-value"></div>
+          <div class="completed-label">Saved to log file:</div>
+          <div id="completed-saved" class="saving-value"></div>
+          <div class="completed-label">Logs sent:</div>
+          <div id="completed-count" class="saving-value"></div>
+        </div>
+        <div id="status" class="status"></div>
+      </section>
+
+      <section id="feature-session" class="feature-section" role="tabpanel">
+        <div class="status">Session Viewer is coming soon.</div>
+      </section>
+
+      <section id="feature-rules" class="feature-section" role="tabpanel">
+        <div class="status">Load Rules tooling is coming soon.</div>
+      </section>
+
+      <section id="feature-payloads" class="feature-section" role="tabpanel">
+        <div class="status">Payload Lab is coming soon.</div>
+      </section>
+
+      <section id="feature-consent" class="feature-section" role="tabpanel">
+        <div class="status">Consent Monitor is coming soon.</div>
+      </section>
+
+      <section id="feature-network" class="feature-section" role="tabpanel">
+        <div class="status">Network Watch is coming soon.</div>
+      </section>
     </div>
+    <script src="sidepanel.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

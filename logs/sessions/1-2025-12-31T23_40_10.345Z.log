@@ -1,0 +1,2 @@
+{"source":"tealium-extension-session","event":"start - turned extension on","captured_at":"2025-12-31T23:40:10.346Z","session_id":"1-2025-12-31T23:40:10.345Z","session_name":"1"}
+{"source":"tealium-extension-session","event":"end - turned extension off","captured_at":"2025-12-31T23:40:16.283Z","session_id":"1-2025-12-31T23:40:10.345Z","session_name":"1"}
