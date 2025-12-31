@@ -20,58 +20,83 @@
       .content {
         padding: 0 16px 16px;
       }
+      .feature-shell {
+        margin-bottom: 12px;
+        padding: 8px;
+        border-radius: 14px;
+        border: 1px solid #262626;
+        background: #171717;
+      }
+      .feature-shell-title {
+        font-size: 10px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: #b6b6b6;
+        margin-bottom: 6px;
+      }
       .feature-nav {
-        display: flex;
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 6px;
-        margin-bottom: 14px;
-        flex-wrap: nowrap;
-        align-items: stretch;
       }
       .feature-card {
-        border: 1px solid #2c2c2c;
-        background: #1f1f1f;
-        color: #e6e6e6;
+        border: 1px solid #262626;
+        background: #121212;
+        color: #cfcfcf;
         padding: 6px 4px;
         border-radius: 10px;
         text-align: center;
         cursor: pointer;
-        min-height: 56px;
-        flex: 1 1 0;
-        min-width: 44px;
+        min-height: 46px;
         display: flex;
         flex-direction: column;
         gap: 4px;
-        transition: transform 0.08s ease, border-color 0.2s ease;
+        transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
         align-items: center;
         justify-content: center;
       }
+      .feature-card:hover {
+        border-color: #343434;
+        background: #181818;
+      }
       .feature-card:active {
-        transform: scale(0.98);
+        transform: translateY(1px);
       }
       .feature-card.active {
-        border-color: #7bd88f;
-        box-shadow: 0 0 0 1px #7bd88f inset;
+        border-color: #3b7a4d;
+        background: #0f1712;
+        color: #e3f7ea;
       }
       .feature-card:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
       .feature-icon {
-        width: 18px;
-        height: 18px;
-        border-radius: 5px;
-        background: #272727;
+        width: 20px;
+        height: 20px;
+        border-radius: 0;
+        background: transparent;
+        border: none;
         display: grid;
         place-items: center;
         font-weight: 600;
         letter-spacing: 0.4px;
         font-size: 9px;
         color: #9ad3a7;
+        text-transform: uppercase;
+      }
+      .feature-card.active .feature-icon {
+        background: transparent;
+        border-color: transparent;
+        color: #d7ffe3;
       }
       .feature-title {
-        font-size: 9px;
-        font-weight: 600;
-        line-height: 1.1;
+        font-size: 8px;
+        font-weight: 700;
+        line-height: 1;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        opacity: 0.7;
       }
       .feature-subtitle {
         display: none;
@@ -202,37 +227,34 @@
       <div class="title">Tealium Tools</div>
     </div>
     <div class="content">
-      <div class="feature-nav" role="tablist" aria-label="Features">
-        <button class="feature-card active" type="button" data-feature="logger" aria-selected="true">
-          <span class="feature-icon" aria-hidden="true">DB</span>
-          <span class="feature-title">utag.db Logger</span>
-          <span class="feature-subtitle">Capture debug stream</span>
-        </button>
-        <button class="feature-card" type="button" data-feature="session" aria-selected="false">
-          <span class="feature-icon" aria-hidden="true">SS</span>
-          <span class="feature-title">Session Viewer</span>
-          <span class="feature-subtitle">Inspect session data</span>
-        </button>
-        <button class="feature-card" type="button" data-feature="rules" aria-selected="false">
-          <span class="feature-icon" aria-hidden="true">LR</span>
-          <span class="feature-title">Load Rules</span>
-          <span class="feature-subtitle">Trace rule outcomes</span>
-        </button>
-        <button class="feature-card" type="button" data-feature="payloads" aria-selected="false">
-          <span class="feature-icon" aria-hidden="true">PL</span>
-          <span class="feature-title">Payload Lab</span>
-          <span class="feature-subtitle">Preview send payloads</span>
-        </button>
-        <button class="feature-card" type="button" data-feature="consent" aria-selected="false">
-          <span class="feature-icon" aria-hidden="true">CO</span>
-          <span class="feature-title">Consent Monitor</span>
-          <span class="feature-subtitle">Track consent state</span>
-        </button>
-        <button class="feature-card" type="button" data-feature="network" aria-selected="false">
-          <span class="feature-icon" aria-hidden="true">NW</span>
-          <span class="feature-title">Network Watch</span>
-          <span class="feature-subtitle">Observe tag calls</span>
-        </button>
+      <div class="feature-shell">
+        <div class="feature-shell-title">Tools</div>
+        <div class="feature-nav" role="tablist" aria-label="Features">
+          <button class="feature-card active" type="button" data-feature="logger" aria-selected="true">
+            <span class="feature-icon" aria-hidden="true">DB</span>
+            <span class="feature-title">utag.db Logger</span>
+          </button>
+          <button class="feature-card" type="button" data-feature="session" aria-selected="false">
+            <span class="feature-icon" aria-hidden="true">SS</span>
+            <span class="feature-title">Session Viewer</span>
+          </button>
+          <button class="feature-card" type="button" data-feature="rules" aria-selected="false">
+            <span class="feature-icon" aria-hidden="true">LR</span>
+            <span class="feature-title">Load Rules</span>
+          </button>
+          <button class="feature-card" type="button" data-feature="payloads" aria-selected="false">
+            <span class="feature-icon" aria-hidden="true">PL</span>
+            <span class="feature-title">Payload Lab</span>
+          </button>
+          <button class="feature-card" type="button" data-feature="consent" aria-selected="false">
+            <span class="feature-icon" aria-hidden="true">CO</span>
+            <span class="feature-title">Consent Monitor</span>
+          </button>
+          <button class="feature-card" type="button" data-feature="network" aria-selected="false">
+            <span class="feature-icon" aria-hidden="true">NW</span>
+            <span class="feature-title">Network Watch</span>
+          </button>
+        </div>
       </div>
 
       <section id="feature-logger" class="feature-section active" role="tabpanel">
