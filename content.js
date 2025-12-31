@@ -16,15 +16,19 @@ function readUtagData() {
 
 let extensionValid = true;
 const ENABLED_KEY = 'enabled';
+let hasSentInitialEnabled = false;
+
 const postEnabledState = (enabled) => {
   window.postMessage(
     {
       source: 'tealium-extension',
       type: 'set_enabled',
       enabled: Boolean(enabled),
+      initial: !hasSentInitialEnabled,
     },
     '*'
   );
+  hasSentInitialEnabled = true;
 };
 
 const syncEnabledState = () => {
@@ -99,6 +103,10 @@ try {
     });
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === 'set_enabled') {
+        postEnabledState(Boolean(message.enabled));
+        return;
+      }
       if (message.type !== 'get_utag') {
         return;
       }

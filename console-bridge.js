@@ -141,7 +141,13 @@
     const nextEnabled = Boolean(event.data.enabled);
     if (nextEnabled && !enabled) {
       enabled = true;
-      syncDbIndex();
+      sequence = 0;
+      if (event.data.initial) {
+        lastDbIndex = 0;
+        drainDbLog();
+      } else {
+        syncDbIndex();
+      }
       wrapUtagDb();
       return;
     }

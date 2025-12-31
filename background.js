@@ -18,6 +18,18 @@ let currentSessionId = null;
 let currentCount = null;
 const consoleSendQueues = new Map();
 
+const notifyActiveTabEnabled = (enabled) => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const activeTab = tabs[0];
+    if (!activeTab || !activeTab.id) {
+      return;
+    }
+    chrome.tabs.sendMessage(activeTab.id, { type: 'set_enabled', enabled }, () => {
+      // ignore errors when content script isn't injected yet
+    });
+  });
+};
+
 const generateSessionId = (name) => {
   const baseName = name && name.trim() ? name.trim() : 'session';
   return `${baseName}-${new Date().toISOString()}`;
@@ -85,6 +97,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const filename =
       typeof message.filename === 'string' ? message.filename.trim() : '';
     if (enabled) {
+      notifyActiveTabEnabled(true);
       const sessionId = generateSessionId(filename);
       currentSessionId = sessionId;
       currentCount = 1;
@@ -111,6 +124,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     }
 
+    notifyActiveTabEnabled(false);
     chrome.storage.local.get(
       { [SESSION_KEY]: null, [FILENAME_KEY]: '' },
       (items) => {
