@@ -2,6 +2,10 @@ const featureButtons = Array.from(document.querySelectorAll('[data-feature]'));
 const topTabButtons = Array.from(document.querySelectorAll('[data-top-tab]'));
 const toolsView = document.getElementById('tools-view');
 const exportView = document.getElementById('export-view');
+const featureNav = document.querySelector('.feature-nav');
+const featureScrollButtons = Array.from(
+  document.querySelectorAll('.feature-scroll')
+);
 const featureSections = new Map([
   ['logger', document.getElementById('feature-logger')],
   ['session', document.getElementById('feature-session')],
@@ -78,6 +82,36 @@ topTabButtons.forEach((button) => {
     setActiveTopTab(button.dataset.topTab);
   });
 });
+
+const updateFeatureScrollButtons = () => {
+  if (!featureNav || featureScrollButtons.length === 0) {
+    return;
+  }
+  const maxScroll = featureNav.scrollWidth - featureNav.clientWidth;
+  featureScrollButtons.forEach((button) => {
+    const direction = button.dataset.scroll;
+    if (direction === 'left') {
+      button.disabled = featureNav.scrollLeft <= 0;
+    } else {
+      button.disabled = featureNav.scrollLeft >= maxScroll - 1;
+    }
+  });
+};
+
+if (featureNav && featureScrollButtons.length) {
+  featureScrollButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const direction = button.dataset.scroll === 'left' ? -1 : 1;
+      const delta = Math.round(featureNav.clientWidth * 0.7) * direction;
+      featureNav.scrollBy({ left: delta, behavior: 'smooth' });
+    });
+  });
+  featureNav.addEventListener('scroll', () => {
+    updateFeatureScrollButtons();
+  });
+  window.addEventListener('resize', updateFeatureScrollButtons);
+  requestAnimationFrame(updateFeatureScrollButtons);
+}
 
 const initialTopTab = topTabButtons.find((button) =>
   button.classList.contains('active')

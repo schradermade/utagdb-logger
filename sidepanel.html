@@ -130,6 +130,7 @@
         height: var(--feature-shell-height);
         display: flex;
         align-items: center;
+        gap: 8px;
       }
       .feature-shell-title {
         font-size: 11px;
@@ -187,6 +188,23 @@
         opacity: 0.5;
         cursor: not-allowed;
       }
+      .feature-scroll {
+        border: 1px solid #2a2a2a;
+        background: #121212;
+        color: #e6e6e6;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex: 0 0 auto;
+      }
+      .feature-scroll:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
       .feature-title {
         font-size: 12px;
         font-weight: 500;
@@ -206,6 +224,9 @@
         display: block;
       }
       #feature-consent {
+        padding-bottom: 96px;
+      }
+      #feature-iq {
         padding-bottom: 96px;
       }
       .storage-controls {
@@ -591,9 +612,18 @@
     <div class="content">
       <div id="tools-view">
         <div class="feature-shell">
+          <button class="feature-scroll" type="button" data-scroll="left" aria-label="Scroll feature cards left">
+            ‹
+          </button>
           <div class="feature-nav" role="tablist" aria-label="Features">
             <button class="feature-card active" type="button" data-feature="logger" aria-selected="true">
               <span class="feature-title">utag.db Logger</span>
+            </button>
+            <button class="feature-card" type="button" data-feature="consent" aria-selected="false">
+              <span class="feature-title">Consent Monitor</span>
+            </button>
+            <button class="feature-card" type="button" data-feature="iq" aria-selected="false">
+              <span class="feature-title">iQ Profile</span>
             </button>
             <button class="feature-card" type="button" data-feature="session" aria-selected="false">
               <span class="feature-title">Session Viewer</span>
@@ -603,12 +633,6 @@
             </button>
             <button class="feature-card" type="button" data-feature="payloads" aria-selected="false">
               <span class="feature-title">Payload Lab</span>
-            </button>
-            <button class="feature-card" type="button" data-feature="iq" aria-selected="false">
-              <span class="feature-title">iQ Profile</span>
-            </button>
-            <button class="feature-card" type="button" data-feature="consent" aria-selected="false">
-              <span class="feature-title">Consent Monitor</span>
             </button>
             <button class="feature-card" type="button" data-feature="network" aria-selected="false">
               <span class="feature-title">Network Watch</span>
@@ -623,6 +647,9 @@
               <span class="feature-title">QA Checklist</span>
             </button>
           </div>
+          <button class="feature-scroll" type="button" data-scroll="right" aria-label="Scroll feature cards right">
+            ›
+          </button>
         </div>
 
       <section id="feature-logger" class="feature-section active" role="tabpanel">
