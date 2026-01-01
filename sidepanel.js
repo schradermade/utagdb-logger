@@ -2,6 +2,9 @@ const featureButtons = Array.from(document.querySelectorAll('[data-feature]'));
 const topTabButtons = Array.from(document.querySelectorAll('[data-top-tab]'));
 const toolsView = document.getElementById('tools-view');
 const exportView = document.getElementById('export-view');
+const recentView = document.getElementById('recent-view');
+const recentList = document.getElementById('recent-list');
+const recentStatus = document.getElementById('recent-status');
 const featureNav = document.querySelector('.feature-nav');
 const featureScrollButtons = Array.from(
   document.querySelectorAll('.feature-scroll')
@@ -54,9 +57,16 @@ const setActiveTopTab = (tab) => {
     exportView.classList.toggle('active', tab === 'export');
     exportView.setAttribute('aria-hidden', tab === 'export' ? 'false' : 'true');
   }
+  if (recentView) {
+    recentView.classList.toggle('active', tab === 'recent');
+    recentView.setAttribute('aria-hidden', tab === 'recent' ? 'false' : 'true');
+  }
   if (tab === 'export') {
     stopConsentPolling();
     refreshExportPreview();
+  } else if (tab === 'recent') {
+    stopConsentPolling();
+    loadRecentExports();
   } else {
     const activeButton = featureButtons.find((button) =>
       button.classList.contains('active')
@@ -322,6 +332,8 @@ let exportCaseFileText = '';
 const LOGGER_PREVIEW_LIMIT = 120;
 let loggerPreviewRawText = '';
 let iqPreviewRawText = '';
+const EXPORT_HISTORY_KEY = 'exportHistory';
+const EXPORT_HISTORY_LIMIT = 5;
 
 const getCurrentTabUuid = () =>
   currentTabUuid || (currentTabId ? tabIdToUuid.get(currentTabId) : null);
@@ -872,6 +884,106 @@ const buildCaseFile = (callback) => {
   });
 };
 
+const renderRecentExports = (items) => {
+  if (!recentList || !recentStatus) {
+    return;
+  }
+  recentList.innerHTML = '';
+  if (!items || items.length === 0) {
+    recentStatus.textContent = 'No exports yet.';
+    return;
+  }
+  recentStatus.textContent = '';
+  items.forEach((item) => {
+    const entry = document.createElement('div');
+    entry.className = 'recent-item';
+    const title = document.createElement('div');
+    title.className = 'recent-title';
+    title.textContent = item.filename || 'case-file.json';
+    const meta = document.createElement('div');
+    meta.className = 'recent-meta';
+    meta.textContent = `${item.timestamp} • ${item.size} bytes`;
+    const tags = document.createElement('div');
+    tags.className = 'recent-tags';
+    (item.sections || []).forEach((section) => {
+      const tag = document.createElement('span');
+      tag.className = 'recent-tag';
+      tag.textContent = section;
+      tags.appendChild(tag);
+    });
+    const actions = document.createElement('div');
+    actions.className = 'storage-controls';
+    const download = document.createElement('button');
+    download.className = 'storage-button';
+    download.type = 'button';
+    download.textContent = 'Download';
+    download.addEventListener('click', () => {
+      if (!item.payload) {
+        return;
+      }
+      const blob = new Blob([item.payload], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      chrome.downloads.download(
+        {
+          url,
+          filename: item.filename || 'case-file.json',
+          saveAs: true,
+        },
+        () => {
+          URL.revokeObjectURL(url);
+        }
+      );
+    });
+    actions.appendChild(download);
+    entry.appendChild(title);
+    entry.appendChild(meta);
+    entry.appendChild(tags);
+    entry.appendChild(actions);
+    recentList.appendChild(entry);
+  });
+};
+
+const loadRecentExports = () => {
+  if (!storageLocal) {
+    renderRecentExports([]);
+    return;
+  }
+  storageLocal.get([EXPORT_HISTORY_KEY], (items) => {
+    if (chrome.runtime.lastError) {
+      if (recentStatus) {
+        recentStatus.textContent = chrome.runtime.lastError.message;
+      }
+      return;
+    }
+    const history = Array.isArray(items[EXPORT_HISTORY_KEY])
+      ? items[EXPORT_HISTORY_KEY]
+      : [];
+    renderRecentExports(history);
+  });
+};
+
+const saveRecentExport = (payload, filename, size, sections) => {
+  if (!storageLocal) {
+    return;
+  }
+  storageLocal.get([EXPORT_HISTORY_KEY], (items) => {
+    const history = Array.isArray(items[EXPORT_HISTORY_KEY])
+      ? items[EXPORT_HISTORY_KEY]
+      : [];
+    const next = [
+      {
+        filename,
+        size,
+        sections,
+        timestamp: new Date().toLocaleString(),
+        payload,
+      },
+      ...history,
+    ].slice(0, EXPORT_HISTORY_LIMIT);
+    storageLocal.set({ [EXPORT_HISTORY_KEY]: next });
+  });
+};
+
 const transformCaseFileForPreview = (caseFile) => {
   if (!caseFile || typeof caseFile !== 'object') {
     return caseFile;
@@ -940,14 +1052,28 @@ const exportCaseFile = () => {
   const timestamp = new Date().toISOString();
   const blob = new Blob([exportCaseFileText], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
+  const filename = formatCaseFileName(timestamp);
+  const sections = [];
+  if (!exportIncludeLogger || exportIncludeLogger.checked) {
+    sections.push('utag.DB');
+  }
+  if (!exportIncludeConsent || exportIncludeConsent.checked) {
+    sections.push('Consent');
+  }
+  if (!exportIncludeIq || exportIncludeIq.checked) {
+    sections.push('iQ Profile');
+  }
+  const size = new TextEncoder().encode(exportCaseFileText).length;
   chrome.downloads.download(
     {
       url,
-      filename: formatCaseFileName(timestamp),
+      filename,
       saveAs: true,
     },
     () => {
       URL.revokeObjectURL(url);
+      saveRecentExport(exportCaseFileText, filename, size, sections);
+      loadRecentExports();
     }
   );
 };

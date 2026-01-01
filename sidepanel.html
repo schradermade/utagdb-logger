@@ -76,9 +76,49 @@
       }
       .top-tabs {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 1fr 1fr;
         gap: 8px;
         width: 100%;
+      }
+      .recent-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .recent-item {
+        border: 1px solid #262626;
+        background: #151515;
+        border-radius: 12px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .recent-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #e6e6e6;
+        word-break: break-all;
+      }
+      .recent-meta {
+        font-size: 11px;
+        color: #9b9b9b;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 12px;
+      }
+      .recent-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .recent-tag {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid #2f2f2f;
+        background: #141414;
+        color: #cfcfcf;
       }
       .top-tab {
         border: 1px solid #2a2a2a;
@@ -808,6 +848,10 @@
           <span class="title-icon" aria-hidden="true">🛠️</span>
           <span>Tools</span>
         </button>
+        <button class="top-tab" type="button" data-top-tab="recent" aria-selected="false">
+          <span class="title-icon" aria-hidden="true">🗂️</span>
+          <span>Recent</span>
+        </button>
         <button class="top-tab" type="button" data-top-tab="export" aria-selected="false">
           <span class="title-icon" aria-hidden="true">📤</span>
           <span>Export</span>
@@ -1189,6 +1233,10 @@
           </div>
         </div>
         <div id="export-size" class="export-size"></div>
+      </div>
+      <div id="recent-view" class="feature-section" role="tabpanel" aria-hidden="true">
+        <div class="status" id="recent-status">No exports yet.</div>
+        <div id="recent-list" class="recent-list"></div>
       </div>
     </div>
     <script src="sidepanel.js"></script>
