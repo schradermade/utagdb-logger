@@ -1,137 +1,85 @@
 # Jarvis — Project Documentation
 
 ## Overview
-This repository contains Jarvis, a Chrome MV3 extension and a small local Node server used to capture Tealium `utag.DB` debug logs from a single browser tab. The extension provides a focused workflow for starting/stopping a recording session, and each session writes to its own timestamped log file. The UI is a compact, dark‑mode side panel with a feature switcher and a dedicated logger view.
+Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` logs from the page context, inspects consent/CMP state, and exports a case file that can be handed to an LLM or CSE. The primary UI is a dark, compact side panel with a Tools tab and an Export tab. A small optional local server exists for sending `utag` payloads, but log capture now persists in extension storage.
 
 ## Goals
-- Capture `utag.DB` logs reliably from page context (not from console scraping).
-- Limit capture to the tab where recording was started.
-- Create one log file per recording session with a user‑defined name and ISO timestamp.
-- Make logs easy to read and easy to parse (JSONL + pretty JSON).
+- Capture `utag.DB` logs reliably from page context (not console scraping).
+- Keep data scoped to the active tab (strict tab isolation in the side panel).
+- Provide readable previews for logs and consent while preserving raw export integrity.
+- Generate a single case file that bundles the latest logger and consent data.
 
 ## Architecture
 
 ### Extension (MV3)
-- **`manifest.json`** — Declares MV3 extension, content scripts, permissions, and background service worker.
-- **`console-bridge.js`** — Injected into the page context (MAIN world). Wraps `utag.DB` and posts entries via `window.postMessage`.
-- **`content.js`** — Runs at `document_start`; relays `console-bridge` messages to the extension service worker.
-- **`background.js`** — Service worker that manages sessions, counts, and forwards payloads to the local server.
-- **`sidepanel.html` / `sidepanel.js`** — Side panel UI with feature cards and logger view; `popup.js` powers the logger controls and status UI.
-- **`popup.html` / `popup.js`** — Legacy popup UI (not used by default in side panel mode).
+- `manifest.json` — MV3 configuration, permissions, side panel, and app icons.
+- `console-bridge.js` — Injected into the page (MAIN world). Wraps `utag.DB` and posts entries via `window.postMessage`.
+- `content.js` — Runs at `document_start`; relays console logs and consent snapshots to the service worker, and provides tab UUIDs.
+- `background.js` — Service worker that manages sessions, counts, and persists logs to `chrome.storage.local`.
+- `sidepanel.html` / `sidepanel.js` — Side panel UI, feature switching, consent polling, and export preview.
+- `popup.html` / `popup.js` — Legacy popup UI (secondary, not the primary workflow).
 
-### Server
-- **`server.mjs`** — Express server that accepts payloads and writes per‑session files to `logs/sessions/`. It writes both JSONL (`.log`) and pretty JSON (`.pretty.log`) and parses JSON strings in console arguments for readability.
+### Local Server (Optional)
+- `server.mjs` — Express server used by the "Send Utag" path (not required for log storage). It accepts payloads at `http://localhost:3005`.
 
 ## Data Flow
-1. `console-bridge.js` wraps `utag.DB` once recording is enabled for the current tab and polls `utag.db_log`.
-2. New `utag.db_log` entries are serialized (with error details) and posted via `window.postMessage`, including `db_index` and `db_generation`.
-3. `content.js` receives the message and forwards it to the service worker.
-4. `background.js` stamps session metadata and sends it to the local server (serialized by session+URL).
-5. `server.mjs` buffers console payloads and flushes them in order on session end.
 
-## Session Model
-- A session starts when the user clicks **Start recording**.
-- The session name is required and is used in filenames.
-- Session files are named:
+### utag.DB Logger
+1. `console-bridge.js` wraps `utag.DB`, polls `utag.db_log`, and posts new entries with `db_index` and `db_generation`.
+2. `content.js` forwards the entries to the service worker with `tab_uuid`.
+3. `background.js` writes entries into `chrome.storage.local` under:
+   - `utagdbLogs:session:<sessionId>` (array of log entries)
+   - `utagdbSession:<sessionId>` (session metadata)
+4. Session start/end markers are inserted as log entries.
+5. `sessionLogCount`, `sessionId`, and `lastSessionId` are updated for UI and export.
 
-```
-<session-name>-<ISO timestamp>.log
-<session-name>-<ISO timestamp>.pretty.log
-```
+### Consent Monitor
+- `content.js` collects consent data from supported CMPs and signals including:
+  - OneTrust, Cookiebot, Didomi, Digital Control Room, TrustArc, Usercentrics
+  - TCF (`__tcfapi`), USP (`__uspapi`), opt-out cookies, and GPC
+- Snapshots are stored in `chrome.storage.local` under `consentSnapshot:tab:<uuid>`.
+- `sidepanel.js` auto-refreshes consent on open and polls every 2 seconds while the Consent Monitor tab is active, deduping updates to prevent flicker.
 
-- A session ends when the user clicks **REC - Stop**.
-- Session start/end entries are included in the log count.
+### Storage Map
+- A per-tab snapshot of cookies, local storage, session storage, and `utag` data is collected on demand and stored under `storageSnapshot:tab:<uuid>`.
 
-## Logging and Files
-- **JSONL log**: `logs/sessions/<name>-<timestamp>.log`
-- **Pretty log**: `logs/sessions/<name>-<timestamp>.pretty.log`
-- **Ordering**: console log entries are ordered by `db_generation` + `db_index`. The server buffers console logs and writes them on session end to preserve strict ordering.
+### Export Case File
+- Export tab builds a case file combining:
+  - `utagdb_logger` (latest session logs + metadata)
+  - `consent_monitor` (latest per-tab consent snapshot)
+- Export supports toggles and redaction options for URLs and signal values.
+- Preview is pretty-printed and line-numbered, but the exported JSON remains raw (no data shape changes).
 
-### Sample Payload
-```json
-{
-  "source": "tealium-extension-console",
-  "url": "https://example.com/",
-  "captured_at": "2025-12-30T03:22:20.247Z",
-  "session_id": "demo-2025-12-30T03:22:20.233Z",
-  "session_name": "demo",
-  "console": {
-    "timestamp": "2025-12-30T03:22:20.200Z",
-    "args": [
-      "send:443:MAPPINGS"
-    ],
-    "sequence": 42
-  }
-}
-```
+## UI Summary
+- Fixed header with Tools/Export tabs and robot icon.
+- Feature cards scroll horizontally; Tools view contains the logger and stubbed sections.
+- Logger preview:
+  - Pretty-printed JSON
+  - Line numbers per log (not per line)
+  - Numbers and separators are non-selectable for clean copy/paste
+- Consent view:
+  - Required / Present / GPC / State
+  - Canonical category labels (e.g., `C0001: Strictly Necessary`)
+  - Signal list in code-like containers
 
-## UI Design
-- Dark gray theme with compact side panel header.
-- Horizontal feature card slider switches between stubbed tools and the logger.
-- Consent Monitor view shows Required, Present, State, consented categories, and raw signal list.
-- Filename input is required and locked during recording.
-- Recording state shows:
-  - `Sending to: <endpoint>`
-  - `Saving to log file: <full filename>`
-  - `Logs sent: <count>`
-- Completed state shows:
-  - `SESSION COMPLETED`
-  - `Sent to: <endpoint>`
-  - `Saved to log file: <full filename>`
-  - `Logs sent: <count>`
-
-## Key Behaviors & Design Decisions
-- **Page context hook**: `utag.DB` is wrapped in the MAIN world and `utag.db_log` is polled to capture all entries.
-- **Tab scoping**: only the tab where recording was started is allowed to send logs.
-- **Session isolation**: each recording session maps to its own output files.
-- **Error serialization**: `Error` objects are captured with `name`, `message`, `stack`, and optional `cause`.
-- **Counts**: live count is tracked in the background service worker and includes start/end entries.
-- **Side panel**: action click opens the side panel; popup UI remains for backward compatibility.
-- **Consent Monitor**: `content.js` reads OneTrust, Cookiebot, Didomi, Digital Control Room, TrustArc, Usercentrics, TCF (`__tcfapi`), USP (`__uspapi`), `tci.*`, and GPC/opt-out cookies to build Required/Present/State.
+## Storage Keys
+- `enabled`, `sessionId`, `sessionFilename`, `sessionLogCount`, `lastSessionId`
+- `utagdbLogs:session:<sessionId>`
+- `utagdbSession:<sessionId>`
+- `consentSnapshot:tab:<uuid>`
+- `storageSnapshot:tab:<uuid>`
 
 ## Configuration
-- **Endpoint**: `http://localhost:3005`
-- **Server body limit**: `1mb` (adjustable in `server.mjs`).
-- **Ordering source**: `db_index` + `db_generation` (server buffers until session end).
-
-## How to Run
-
-### Start the server
-```bash
-npm i express
-node server.mjs
-```
-
-### Load the extension
-- Open `chrome://extensions`.
-- Enable **Developer mode**.
-- Click **Load unpacked** and select this folder.
-
-## File Reference
-- `background.js` — session management, counting, request forwarding.
-- `console-bridge.js` — `utag.DB` hook and serialization.
-- `content.js` — message bridge to service worker.
-- `sidepanel.html` — Side panel markup and styles (feature cards + logger).
-- `sidepanel.js` — Side panel feature switching.
-- `popup.html` — Legacy popup markup and styles.
-- `popup.js` — Logger UI behavior and state management.
-- `server.mjs` — local logging server.
+- `http://localhost:3005` is used by the optional `send_utag` workflow.
+- Host permissions allow access to all URLs for consent and storage inspection.
 
 ## Known Limitations
-- Logging depends on `utag.DB` being present and active on the page.
-- If `utagdb=true` is not set, `utag.DB` may not emit logs.
-- Session counts are stored in the service worker; a browser restart will reset in‑memory counters (storage keeps the latest count).
+- Logging requires `utag.DB` to be present and active on the page.
+- Long-running sessions can grow `chrome.storage.local` usage.
+- Export uses the latest session and active tab snapshot; historical aggregation is not yet implemented.
 
-## Forward‑Looking Improvements
-- Add a “Download latest log” button in the popup.
-- Provide per‑session summaries (duration, total count, endpoints used).
-- Add optional filtering for specific `utag` tag IDs.
-- Add a lightweight health indicator for `utag.DB` availability.
+## Runbook
+1. Load unpacked extension from this folder in `chrome://extensions`.
+2. Open the side panel, start recording, and inspect logs/consent.
+3. Use Export to generate a case file.
 
-## Change Log (High Level)
-- Added MV3 extension with popup controls and tab‑scoped logging.
-- Implemented sessionized logging with user‑defined filenames.
-- Added local server with JSONL + pretty log output.
-- Introduced ordered log output based on `db_index` + `db_generation` with server-side buffering.
-- Added side panel UI with feature cards and stub sections.
-- Removed bridge status payloads and auto‑utag payload on start.
