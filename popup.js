@@ -16,7 +16,7 @@ const completedSavedEl = document.getElementById('completed-saved');
 const completedCountEl = document.getElementById('completed-count');
 let isRecording = false;
 let wasRecording = false;
-const ENDPOINT = 'http://localhost:3005';
+const ENDPOINT = 'Extension storage';
 let sessionId = null;
 let lastLogCount = 0;
 
@@ -42,7 +42,7 @@ function setDestination(isOn) {
 
 function setSaving(isOn, id) {
   if (isOn && id) {
-    savingValueEl.textContent = `${id}.log`;
+    savingValueEl.textContent = id;
     savingEl.classList.remove('hidden');
     return;
   }
@@ -64,7 +64,7 @@ function setCount(isOn, count) {
 function setCompleted(isOn, id) {
   if (isOn && id) {
     completedSentEl.textContent = ENDPOINT;
-    completedSavedEl.textContent = `${id}.log`;
+    completedSavedEl.textContent = id;
     completedCountEl.textContent = String(lastLogCount || 0);
     completedEl.classList.remove('hidden');
     return;

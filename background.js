@@ -18,9 +18,42 @@ const ENABLED_KEY = 'enabled';
 const SESSION_KEY = 'sessionId';
 const FILENAME_KEY = 'sessionFilename';
 const COUNT_KEY = 'sessionLogCount';
+const LAST_SESSION_KEY = 'lastSessionId';
+const LOGS_KEY_PREFIX = 'utagdbLogs:session:';
+const SESSION_META_PREFIX = 'utagdbSession:';
 let currentSessionId = null;
 let currentCount = null;
 const consoleSendQueues = new Map();
+const logWriteQueues = new Map();
+
+const getSessionLogKey = (sessionId) =>
+  `${LOGS_KEY_PREFIX}${sessionId || 'no-session'}`;
+
+const getSessionMetaKey = (sessionId) =>
+  `${SESSION_META_PREFIX}${sessionId || 'no-session'}`;
+
+const enqueueLogWrite = (sessionId, entry) => {
+  const key = getSessionLogKey(sessionId);
+  const prev = logWriteQueues.get(key) || Promise.resolve();
+  const next = prev
+    .catch(() => {})
+    .then(
+      () =>
+        new Promise((resolve) => {
+          chrome.storage.local.get({ [key]: [] }, (items) => {
+            const logs = Array.isArray(items[key]) ? items[key] : [];
+            logs.push(entry);
+            chrome.storage.local.set({ [key]: logs }, () => resolve());
+          });
+        })
+    );
+  logWriteQueues.set(key, next);
+  next.finally(() => {
+    if (logWriteQueues.get(key) === next) {
+      logWriteQueues.delete(key);
+    }
+  });
+};
 
 const notifyActiveTabEnabled = (enabled) => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -83,6 +116,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         [SESSION_KEY]: null,
         [FILENAME_KEY]: '',
         [COUNT_KEY]: 0,
+        [LAST_SESSION_KEY]: null,
       },
       (items) => {
         sendResponse({
@@ -90,6 +124,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sessionId: items[SESSION_KEY],
           filename: items[FILENAME_KEY],
           logCount: items[COUNT_KEY],
+          lastSessionId: items[LAST_SESSION_KEY] || null,
         });
       }
     );
@@ -111,6 +146,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           [SESSION_KEY]: sessionId,
           [FILENAME_KEY]: filename,
           [COUNT_KEY]: 1,
+          [LAST_SESSION_KEY]: sessionId,
         },
         () => {
           const startEntry = {
@@ -120,9 +156,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             session_id: sessionId,
             session_name: filename || undefined,
           };
-          sendPayloadWithRetry(startEntry, 'session start').then(() => {
-            sendResponse({ ok: true });
-          });
+          const sessionMetaKey = getSessionMetaKey(sessionId);
+          chrome.storage.local.set(
+            {
+              [sessionMetaKey]: {
+                session_id: sessionId,
+                session_name: filename || null,
+                started_at: startEntry.captured_at,
+                ended_at: null,
+              },
+            },
+            () => {
+              enqueueLogWrite(sessionId, startEntry);
+              sendResponse({ ok: true });
+            }
+          );
         }
       );
       return true;
@@ -153,8 +201,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           () => {
             currentSessionId = null;
             currentCount = null;
-            sendPayloadWithRetry(endEntry, 'session end').then(() => {
-              sendResponse({ ok: true });
+            const sessionMetaKey = getSessionMetaKey(sessionId);
+            chrome.storage.local.get({ [sessionMetaKey]: {} }, (items) => {
+              const meta = items[sessionMetaKey] || {};
+              chrome.storage.local.set(
+                {
+                  [sessionMetaKey]: {
+                    ...meta,
+                    session_id: sessionId || meta.session_id,
+                    session_name: storedFilename || meta.session_name || null,
+                    ended_at: endEntry.captured_at,
+                  },
+                },
+                () => {
+                  enqueueLogWrite(sessionId, endEntry);
+                  sendResponse({ ok: true });
+                }
+              );
             });
           }
         );
@@ -386,10 +449,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           captured_at: new Date().toISOString(),
           session_id: items[SESSION_KEY],
           session_name: items[FILENAME_KEY] || undefined,
+          tab_uuid: message.payload && message.payload.tab_uuid
+            ? message.payload.tab_uuid
+            : null,
           console: message.payload || {},
         };
-        const queueKey = `${items[SESSION_KEY] || 'no-session'}::${logEntry.url}`;
-        enqueueConsoleSend(queueKey, logEntry);
+        enqueueLogWrite(items[SESSION_KEY], logEntry);
       }
     );
     return;

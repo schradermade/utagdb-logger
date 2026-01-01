@@ -1254,6 +1254,7 @@ window.addEventListener('message', (event) => {
         sequence: event.data.sequence,
         db_index: event.data.db_index,
         db_generation: event.data.db_generation,
+        tab_uuid: getTabUuid(),
       },
     };
     safeSendMessage(message);

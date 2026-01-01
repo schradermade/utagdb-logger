@@ -312,36 +312,53 @@ const buildCaseFile = (callback) => {
   const includeLogger = !exportIncludeLogger || exportIncludeLogger.checked;
   const includeConsent = !exportIncludeConsent || exportIncludeConsent.checked;
   const currentUuid = getCurrentTabUuid();
-  chrome.storage.local.get(null, (items) => {
-    if (chrome.runtime.lastError) {
-      callback(null, chrome.runtime.lastError.message);
-      return;
-    }
-    const consentSnapshots = Object.keys(items || {})
-      .filter((key) => key.startsWith('consentSnapshot:tab:'))
-      .map((key) => items[key])
-      .filter(Boolean)
-      .filter((snapshot) => (currentUuid ? snapshot.tab_uuid === currentUuid : true))
-      .map((snapshot) => {
-        const next = { ...snapshot };
-        if (redactUrls) {
-          next.url = '[redacted]';
-        }
-        if (redactSignals && Array.isArray(next.signals)) {
-          next.signals = next.signals.map((signal) => ({
-            label: signal.label,
-            value: 'redacted',
-          }));
-        }
-        return next;
-      })
-      .sort((left, right) => {
-        const leftTime = left && left.captured_at ? left.captured_at : '';
-        const rightTime = right && right.captured_at ? right.captured_at : '';
-        return leftTime.localeCompare(rightTime);
-      });
-    chrome.runtime.sendMessage({ type: 'get_enabled' }, (response) => {
-      const logger = response || {};
+
+  chrome.runtime.sendMessage({ type: 'get_enabled' }, (response) => {
+    const logger = response || {};
+    const sessionId = logger.sessionId || logger.lastSessionId || null;
+    const logsKey = `utagdbLogs:session:${sessionId || 'no-session'}`;
+    const metaKey = `utagdbSession:${sessionId || 'no-session'}`;
+
+    chrome.storage.local.get(null, (items) => {
+      if (chrome.runtime.lastError) {
+        callback(null, chrome.runtime.lastError.message);
+        return;
+      }
+      const consentSnapshots = Object.keys(items || {})
+        .filter((key) => key.startsWith('consentSnapshot:tab:'))
+        .map((key) => items[key])
+        .filter(Boolean)
+        .filter((snapshot) => (currentUuid ? snapshot.tab_uuid === currentUuid : true))
+        .map((snapshot) => {
+          const next = { ...snapshot };
+          if (redactUrls) {
+            next.url = '[redacted]';
+          }
+          if (redactSignals && Array.isArray(next.signals)) {
+            next.signals = next.signals.map((signal) => ({
+              label: signal.label,
+              value: 'redacted',
+            }));
+          }
+          return next;
+        })
+        .sort((left, right) => {
+          const leftTime = left && left.captured_at ? left.captured_at : '';
+          const rightTime = right && right.captured_at ? right.captured_at : '';
+          return leftTime.localeCompare(rightTime);
+        });
+      const sessionMeta = items[metaKey] || null;
+      const sessionLogs = Array.isArray(items[logsKey]) ? items[logsKey] : [];
+      const redactedLogs = redactUrls
+        ? sessionLogs.map((entry) => ({
+            ...entry,
+            url: entry.url ? '[redacted]' : entry.url,
+            console:
+              entry.console && entry.console.url
+                ? { ...entry.console, url: '[redacted]' }
+                : entry.console,
+          }))
+        : sessionLogs;
       const caseFile = {
         generated_at: generatedAt,
         app: {
@@ -351,10 +368,13 @@ const buildCaseFile = (callback) => {
         utagdb_logger: includeLogger
           ? {
               enabled: Boolean(logger.enabled),
-              session_id: logger.sessionId || null,
+              session_id: sessionId,
               session_name: logger.filename || null,
-              log_count: Number.isFinite(logger.logCount) ? logger.logCount : null,
-              endpoint: 'http://localhost:3005',
+              log_count: Number.isFinite(logger.logCount)
+                ? logger.logCount
+                : redactedLogs.length,
+              session: sessionMeta,
+              logs: redactedLogs,
             }
           : null,
         consent_monitor: includeConsent
@@ -385,7 +405,12 @@ function refreshExportPreview() {
       return;
     }
     exportCaseFileText = JSON.stringify(caseFile, null, 2);
-    exportPreview.textContent = exportCaseFileText;
+    const lines = exportCaseFileText.split('\n');
+    const padded = String(lines.length).length;
+    const numbered = lines
+      .map((line, index) => `${String(index + 1).padStart(padded, ' ')} | ${line}`)
+      .join('\n');
+    exportPreview.textContent = numbered;
     exportStatus.textContent = `Preview updated at ${new Date().toLocaleTimeString()}`;
     if (exportSize) {
       const bytes = new TextEncoder().encode(exportCaseFileText).length;
