@@ -292,6 +292,8 @@ const exportStatus = document.getElementById('export-status');
 const exportPreview = document.getElementById('export-preview');
 const loggerPreview = document.getElementById('logger-preview');
 const loggerPreviewCount = document.getElementById('logger-preview-count');
+const loggerCopyButton = document.getElementById('logger-copy');
+const exportCopyButton = document.getElementById('export-copy');
 const iqAccountInput = document.getElementById('iq-account');
 const iqProfileInput = document.getElementById('iq-profile');
 const iqUsernameInput = document.getElementById('iq-username');
@@ -314,6 +316,8 @@ const exportRedactSignals = document.getElementById('export-redact-signals');
 const exportSize = document.getElementById('export-size');
 let exportCaseFileText = '';
 const LOGGER_PREVIEW_LIMIT = 120;
+let loggerPreviewRawText = '';
+let iqPreviewRawText = '';
 
 const getCurrentTabUuid = () =>
   currentTabUuid || (currentTabId ? tabIdToUuid.get(currentTabId) : null);
@@ -488,6 +492,7 @@ const refreshLoggerPreview = () => {
         .slice(startIndex)
         .map((entry) => transformLogEntryForPreview(entry));
       const pad = String(logs.length).length;
+      let rawText = '';
       const formatted = [];
       slice.forEach((entry, index) => {
         const logNumber = String(startIndex + index + 1).padStart(pad, ' ');
@@ -497,6 +502,10 @@ const refreshLoggerPreview = () => {
         } catch (err) {
           prettyEntry = stringifyLogArg(entry);
         }
+        if (rawText) {
+          rawText += '\n\n';
+        }
+        rawText += prettyEntry;
         const entryLines = prettyEntry.split('\n');
         entryLines.forEach((line, lineIndex) => {
           const prefix = lineIndex === 0 ? logNumber : ' '.repeat(pad);
@@ -512,6 +521,7 @@ const refreshLoggerPreview = () => {
         });
       });
       loggerPreview.innerHTML = formatted.join('');
+      loggerPreviewRawText = rawText;
     });
   });
 };
@@ -533,6 +543,30 @@ const setIqToken = (token) => {
 const setIqHost = (host) => {
   if (iqHostInput) {
     iqHostInput.value = host || '';
+  }
+};
+
+const setCopyState = (button, isCopied) => {
+  if (!button) {
+    return;
+  }
+  const label = button.querySelector('.iq-copy-text');
+  if (isCopied) {
+    button.classList.add('copied');
+    if (label) {
+      label.textContent = 'Copied';
+    }
+    window.setTimeout(() => {
+      button.classList.remove('copied');
+      if (label) {
+        label.textContent = 'Copy';
+      }
+    }, 1400);
+    return;
+  }
+  button.classList.remove('copied');
+  if (label) {
+    label.textContent = 'Copy';
   }
 };
 
@@ -856,17 +890,20 @@ function refreshExportPreview() {
   buildCaseFile((caseFile, error) => {
     if (error) {
       exportStatus.textContent = error;
-      exportPreview.textContent = '';
-      exportCaseFileText = '';
-      if (exportSize) {
-        exportSize.textContent = '';
-      }
-      return;
+    exportPreview.textContent = '';
+    exportCaseFileText = '';
+    if (exportSize) {
+      exportSize.textContent = '';
     }
-    exportCaseFileText = JSON.stringify(caseFile, null, 2);
+    return;
+  }
+  exportCaseFileText = JSON.stringify(caseFile, null, 2);
     const previewCaseFile = transformCaseFileForPreview(caseFile);
     const previewText = JSON.stringify(previewCaseFile, null, 2);
-    renderPreviewLines(exportPreview, previewText);
+  renderPreviewLines(exportPreview, previewText);
+  if (exportCopyButton) {
+    exportCopyButton.dataset.raw = exportCaseFileText;
+  }
     exportStatus.textContent = `Preview updated at ${new Date().toLocaleTimeString()}`;
     if (exportSize) {
       const bytes = new TextEncoder().encode(exportCaseFileText).length;
@@ -933,17 +970,7 @@ if (iqCopyButton) {
       .writeText(iqPreviewRawText)
       .then(() => {
         setIqStatus('Preview copied to clipboard.', false);
-        iqCopyButton.classList.add('copied');
-        const label = iqCopyButton.querySelector('.iq-copy-text');
-        if (label) {
-          label.textContent = 'Copied';
-        }
-        window.setTimeout(() => {
-          iqCopyButton.classList.remove('copied');
-          if (label) {
-            label.textContent = 'Copy';
-          }
-        }, 1400);
+        setCopyState(iqCopyButton, true);
       })
       .catch(() => {
         setIqStatus('Clipboard copy failed.', true);
@@ -1353,6 +1380,37 @@ function fetchConsentSnapshot(options = {}) {
     });
   });
 }
+if (loggerCopyButton) {
+  loggerCopyButton.addEventListener('click', () => {
+    if (!loggerPreviewRawText) {
+      return;
+    }
+    navigator.clipboard
+      .writeText(loggerPreviewRawText)
+      .then(() => {
+        setCopyState(loggerCopyButton, true);
+      })
+      .catch(() => {
+        setCopyState(loggerCopyButton, false);
+      });
+  });
+}
+if (exportCopyButton) {
+  exportCopyButton.addEventListener('click', () => {
+    const raw = exportCopyButton.dataset.raw || '';
+    if (!raw) {
+      return;
+    }
+    navigator.clipboard
+      .writeText(raw)
+      .then(() => {
+        setCopyState(exportCopyButton, true);
+      })
+      .catch(() => {
+        setCopyState(exportCopyButton, false);
+      });
+  });
+}
 
 if (consentRefreshButton) {
   consentRefreshButton.addEventListener('click', fetchConsentSnapshot);
@@ -1518,4 +1576,3 @@ if (chrome.tabs && chrome.tabs.onRemoved) {
     clearSessionSnapshots(tabUuid);
   });
 }
-let iqPreviewRawText = '';

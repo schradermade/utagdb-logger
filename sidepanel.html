@@ -853,7 +853,30 @@
             <span>Logs Preview</span>
             <span id="logger-preview-count">0</span>
           </div>
-          <pre id="logger-preview" class="storage-value logger-preview"></pre>
+          <div class="iq-preview-shell">
+            <div class="iq-preview-toolbar">
+              <span class="iq-preview-label">json</span>
+              <button id="logger-copy" class="iq-copy" type="button">
+                <span class="iq-copy-icon" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                    <mask id="copy-cutout-logger" maskUnits="userSpaceOnUse">
+                      <rect x="0" y="0" width="20" height="20" fill="white"></rect>
+                      <rect x="6" y="6" width="11" height="11" rx="2" fill="black"></rect>
+                    </mask>
+                    <rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" mask="url(#copy-cutout-logger)"></rect>
+                    <rect x="6.5" y="6.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></rect>
+                  </svg>
+                </span>
+                <span class="iq-check" aria-hidden="true">
+                  <svg viewBox="0 0 12 10" aria-hidden="true" focusable="false">
+                    <path d="M1 5.5 L4.5 9 L11 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"></path>
+                  </svg>
+                </span>
+                <span class="iq-copy-text">Copy</span>
+              </button>
+            </div>
+            <pre id="logger-preview" class="storage-value logger-preview"></pre>
+          </div>
         </div>
       </section>
 
@@ -1085,7 +1108,30 @@
           <div class="storage-header">
             <span>Case File Preview</span>
           </div>
-          <pre id="export-preview" class="storage-value export-preview"></pre>
+          <div class="iq-preview-shell">
+            <div class="iq-preview-toolbar">
+              <span class="iq-preview-label">json</span>
+              <button id="export-copy" class="iq-copy" type="button">
+                <span class="iq-copy-icon" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                    <mask id="copy-cutout-export" maskUnits="userSpaceOnUse">
+                      <rect x="0" y="0" width="20" height="20" fill="white"></rect>
+                      <rect x="6" y="6" width="11" height="11" rx="2" fill="black"></rect>
+                    </mask>
+                    <rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" mask="url(#copy-cutout-export)"></rect>
+                    <rect x="6.5" y="6.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></rect>
+                  </svg>
+                </span>
+                <span class="iq-check" aria-hidden="true">
+                  <svg viewBox="0 0 12 10" aria-hidden="true" focusable="false">
+                    <path d="M1 5.5 L4.5 9 L11 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"></path>
+                  </svg>
+                </span>
+                <span class="iq-copy-text">Copy</span>
+              </button>
+            </div>
+            <pre id="export-preview" class="storage-value export-preview"></pre>
+          </div>
         </div>
         <div id="export-size" class="export-size"></div>
       </div>
