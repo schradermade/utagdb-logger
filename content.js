@@ -14,6 +14,25 @@ function readUtagData() {
   return null;
 }
 
+let gpcFromPage;
+
+function normalizeGpcValue(value) {
+  if (value === true || value === false) {
+    return value;
+  }
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  const lowered = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'on'].includes(lowered)) {
+    return true;
+  }
+  if (['false', '0', 'no', 'off'].includes(lowered)) {
+    return false;
+  }
+  return undefined;
+}
+
 function getTabUuid() {
   try {
     const storage = window.sessionStorage;
@@ -157,6 +176,25 @@ function extractOneTrustGroupString(consentValue) {
   return '';
 }
 
+function extractOneTrustGpcFlags(consentValue) {
+  const decoded = decodeConsentValue(consentValue);
+  if (!decoded) {
+    return {};
+  }
+  try {
+    const params = new URLSearchParams(decoded);
+    const isGpcEnabled = params.get('isGpcEnabled');
+    const browserGpcFlag = params.get('browserGpcFlag');
+    return {
+      isGpcEnabled: isGpcEnabled !== null ? isGpcEnabled : null,
+      browserGpcFlag: browserGpcFlag !== null ? browserGpcFlag : null,
+    };
+  } catch (err) {
+    // ignore
+  }
+  return {};
+}
+
 function summarizeOneTrust(groups, activeGroups) {
   const groupKeys = Object.keys(groups);
   if (groupKeys.length === 0 && !activeGroups) {
@@ -268,6 +306,105 @@ function collectCookiebotData() {
     consentFlags,
     summary,
     gdprApplies,
+    consentedCategories: listAcceptedFlags(consentFlags),
+  };
+}
+
+function collectCookieYesData(cookies) {
+  const cookieKeys = ['cookieyes-consent', 'cky-consent', 'cookieyes'];
+  let raw = null;
+  for (const key of cookieKeys) {
+    if (cookies.has(key)) {
+      raw = cookies.get(key);
+      break;
+    }
+  }
+  if (!raw) {
+    return null;
+  }
+  const decoded = decodeConsentValue(raw);
+  let parsed = null;
+  if (decoded) {
+    const trimmed = decoded.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        parsed = JSON.parse(trimmed);
+      } catch (err) {
+        parsed = null;
+      }
+    } else if (trimmed.includes('=')) {
+      try {
+        const params = new URLSearchParams(trimmed);
+        const accepted = params.get('accepted');
+        const rejected = params.get('rejected');
+        if (accepted || rejected) {
+          parsed = {
+            accepted: parseDelimitedList(accepted),
+            rejected: parseDelimitedList(rejected),
+          };
+        }
+      } catch (err) {
+        // ignore
+      }
+    } else if (trimmed.includes(':')) {
+      const pairs = trimmed.split(',');
+      const mapped = {};
+      pairs.forEach((pair) => {
+        const [rawKey, rawValue] = pair.split(':');
+        if (!rawKey) {
+          return;
+        }
+        mapped[rawKey.trim()] = rawValue ? rawValue.trim() : '';
+      });
+      parsed = mapped;
+    }
+  }
+  const consentFlags = {};
+  const categoryKeys = ['necessary', 'functional', 'analytics', 'advertisement', 'other'];
+  const setFlag = (key, value) => {
+    if (!key) {
+      return;
+    }
+    const normalized = String(key).toLowerCase();
+    if (!categoryKeys.includes(normalized)) {
+      return;
+    }
+    if (value === true || value === false) {
+      consentFlags[normalized] = value;
+      return;
+    }
+    const lowered = String(value).toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(lowered)) {
+      consentFlags[normalized] = true;
+    } else if (['false', '0', 'no', 'off'].includes(lowered)) {
+      consentFlags[normalized] = false;
+    }
+  };
+  if (Array.isArray(parsed)) {
+    parsed.forEach((entry) => setFlag(entry, true));
+  } else if (parsed && typeof parsed === 'object') {
+    if (Array.isArray(parsed.accepted) || Array.isArray(parsed.rejected)) {
+      (parsed.accepted || []).forEach((entry) => setFlag(entry, true));
+      (parsed.rejected || []).forEach((entry) => setFlag(entry, false));
+    }
+    if (parsed.categories && typeof parsed.categories === 'object') {
+      Object.entries(parsed.categories).forEach(([key, value]) => {
+        setFlag(key, value);
+      });
+    }
+    categoryKeys.forEach((key) => {
+      if (key in parsed) {
+        setFlag(key, parsed[key]);
+      }
+    });
+  } else if (decoded) {
+    parseDelimitedList(decoded).forEach((entry) => setFlag(entry, true));
+  }
+  return {
+    raw,
+    parsed,
+    consentFlags,
+    summary: summarizeBooleanFlags(consentFlags),
     consentedCategories: listAcceptedFlags(consentFlags),
   };
 }
@@ -425,11 +562,13 @@ function collectUsercentricsData() {
 }
 
 function collectOptOutGpcData(cookies) {
-  const gpc = navigator.globalPrivacyControl;
+  const gpcRaw = gpcFromPage !== undefined ? gpcFromPage : navigator.globalPrivacyControl;
+  const gpc = normalizeGpcValue(gpcRaw);
   const optOutCookie =
     cookies.get('utag_optout') || cookies.get('utag_optout_all') || null;
   return {
     gpc,
+    gpcRaw,
     optOutCookie,
   };
 }
@@ -549,9 +688,9 @@ async function collectConsentSnapshot() {
   const signals = [];
   const categoryStatusMap = new Map();
 
-  const addSignal = (label, value) => {
+  const addSignal = (label, value, options = {}) => {
     const sanitized = sanitizeSignalValue(value);
-    if (sanitized === undefined) {
+    if (sanitized === undefined && !options.allowUndefined) {
       return;
     }
     signals.push({ label, value: sanitized });
@@ -578,6 +717,7 @@ async function collectConsentSnapshot() {
   const onetrustActiveGroups = decodeConsentValue(
     cookies.get('OnetrustActiveGroups') || window.OnetrustActiveGroups || ''
   );
+  const onetrustGpcFlags = extractOneTrustGpcFlags(onetrustConsent);
   const onetrustSummary = summarizeOneTrust(
     onetrustGroups,
     onetrustActiveGroups
@@ -585,8 +725,14 @@ async function collectConsentSnapshot() {
   const onetrustConsentedGroups = getOneTrustConsentedGroups(onetrustGroups);
 
   addSignal('cookie OptanonConsent', onetrustConsent || null);
-  addSignal('OneTrust groups', onetrustGroupString || null);
+  const orderedOneTrustGroups = Object.keys(onetrustGroups)
+    .sort((left, right) => left.localeCompare(right))
+    .map((key) => `${key}:${onetrustGroups[key] ? '1' : '0'}`)
+    .join(',');
+  addSignal('OneTrust groups', orderedOneTrustGroups || onetrustGroupString || null);
   addSignal('cookie OnetrustActiveGroups', onetrustActiveGroups || null);
+  addSignal('OneTrust isGpcEnabled', onetrustGpcFlags.isGpcEnabled);
+  addSignal('OneTrust browserGpcFlag', onetrustGpcFlags.browserGpcFlag);
   Object.entries(onetrustGroups).forEach(([group, accepted]) => {
     addCategoryStatus(group, accepted);
   });
@@ -606,6 +752,17 @@ async function collectConsentSnapshot() {
       cookiebotData.gdprApplies !== null ? cookiebotData.gdprApplies : null
     );
     Object.entries(cookiebotData.consentFlags || {}).forEach(
+      ([category, accepted]) => addCategoryStatus(category, accepted)
+    );
+  }
+
+  const cookieYesData = collectCookieYesData(cookies);
+  if (cookieYesData) {
+    addSignal('CookieYes consent', cookieYesData.raw || null);
+    if (cookieYesData.parsed) {
+      addSignal('CookieYes parsed', cookieYesData.parsed);
+    }
+    Object.entries(cookieYesData.consentFlags || {}).forEach(
       ([category, accepted]) => addCategoryStatus(category, accepted)
     );
   }
@@ -695,11 +852,19 @@ async function collectConsentSnapshot() {
   }
 
   const optOutData = collectOptOutGpcData(cookies);
+  const onetrustGpcValue =
+    onetrustGpcFlags.browserGpcFlag !== null &&
+    onetrustGpcFlags.browserGpcFlag !== undefined
+      ? onetrustGpcFlags.browserGpcFlag
+      : onetrustGpcFlags.isGpcEnabled;
+  const navigatorGpc = navigator.globalPrivacyControl;
+  addSignal('GPC signal (page)', gpcFromPage, { allowUndefined: true });
+  addSignal('GPC signal (navigator)', navigatorGpc, { allowUndefined: true });
+  addSignal('GPC signal (OneTrust)', onetrustGpcValue, { allowUndefined: true });
   addSignal(
-    'GPC signal',
-    optOutData.gpc !== undefined ? optOutData.gpc : null
+    'Opt-out cookie',
+    optOutData.optOutCookie || 'Not set'
   );
-  addSignal('Opt-out cookie', optOutData.optOutCookie || null);
 
   const tciSignals = extractTciSignals(utagData);
   tciSignals.forEach((signal) => signals.push(signal));
@@ -741,6 +906,9 @@ async function collectConsentSnapshot() {
   if (cookiebotData) {
     consentRequiredSignals.push('Cookiebot');
   }
+  if (cookieYesData) {
+    consentRequiredSignals.push('CookieYes');
+  }
   if (didomiData) {
     consentRequiredSignals.push('Didomi');
   }
@@ -776,6 +944,9 @@ async function collectConsentSnapshot() {
   }
   if (cookiebotData && cookiebotData.consent) {
     consentPresentSignals.push('Cookiebot consent');
+  }
+  if (cookieYesData && cookieYesData.raw) {
+    consentPresentSignals.push('CookieYes consent');
   }
   if (didomiData && (didomiData.status || didomiData.consentedCategories.length)) {
     consentPresentSignals.push('Didomi status');
@@ -843,6 +1014,22 @@ async function collectConsentSnapshot() {
         : 'warn';
     if (cookiebotData.summary.detail) {
       addSignal('Cookiebot summary', cookiebotData.summary.detail);
+    }
+  } else if (cookieYesData && cookieYesData.summary) {
+    stateValue =
+      cookieYesData.summary.state === 'accepted'
+        ? 'Accepted'
+        : cookieYesData.summary.state === 'rejected'
+        ? 'Rejected'
+        : 'Partial';
+    stateTone =
+      cookieYesData.summary.state === 'accepted'
+        ? 'ok'
+        : cookieYesData.summary.state === 'rejected'
+        ? 'bad'
+        : 'warn';
+    if (cookieYesData.summary.detail) {
+      addSignal('CookieYes summary', cookieYesData.summary.detail);
     }
   } else if (didomiData && didomiData.summary) {
     stateValue =
@@ -952,10 +1139,37 @@ async function collectConsentSnapshot() {
     presentValue = 'No';
   }
 
+  const acceptedCategories = Array.from(categoryStatusMap.values())
+    .filter((entry) => entry.accepted)
+    .map((entry) => String(entry.name).trim().toLowerCase())
+    .filter(Boolean);
+  const isNecessaryCategory = (name) =>
+    name === 'c0001' || name === 'necessary' || name === 'strictly necessary';
+  if (
+    stateValue !== 'Not Required' &&
+    acceptedCategories.length > 0 &&
+    acceptedCategories.every(isNecessaryCategory)
+  ) {
+    stateValue = 'Strictly Necessary Only';
+    stateTone = 'warn';
+  }
+
   return {
     url: location.href,
     captured_at: new Date().toISOString(),
     tab_uuid: getTabUuid(),
+    gpc: (() => {
+      const gpcValue = normalizeGpcValue(
+        gpcFromPage !== undefined ? gpcFromPage : navigatorGpc
+      );
+      if (gpcValue === true) {
+        return { value: 'On', tone: 'ok' };
+      }
+      if (gpcValue === false) {
+        return { value: 'Off', tone: null };
+      }
+      return { value: 'Unknown', tone: null };
+    })(),
     required: {
       value: requiredValue,
       tone: requiredValue === 'Yes' ? 'ok' : requiredValue === 'No' ? 'ok' : null,
@@ -1046,6 +1260,10 @@ window.addEventListener('message', (event) => {
     return;
   }
   if (event.data.type === 'bridge_status') {
+    return;
+  }
+  if (event.data.type === 'gpc_signal') {
+    gpcFromPage = event.data.value;
     return;
   }
 });

@@ -202,6 +202,7 @@ const consentStatus = document.getElementById('consent-status');
 const consentRequired = document.getElementById('consent-required');
 const consentPresent = document.getElementById('consent-present');
 const consentState = document.getElementById('consent-state');
+const consentGpc = document.getElementById('consent-gpc');
 const consentMeta = document.getElementById('consent-meta');
 const consentCategories = document.getElementById('consent-categories');
 const consentSignalList = document.getElementById('consent-signal-list');
@@ -280,6 +281,7 @@ const buildConsentCoreSignature = (payload) => {
     required: payload.required ? payload.required.value : '',
     present: payload.present ? payload.present.value : '',
     state: payload.state ? payload.state.value : '',
+    gpc: payload.gpc ? payload.gpc.value : '',
     categories: normalizedCategories,
   };
   try {
@@ -423,6 +425,7 @@ const setConsentEmpty = (message) => {
   setConsentPill(consentRequired, 'Unknown', null);
   setConsentPill(consentPresent, 'Unknown', null);
   setConsentPill(consentState, 'Unknown', null);
+  setConsentPill(consentGpc, 'Unknown', null);
   renderConsentCategories([]);
   renderConsentSignals([]);
   if (consentMeta) {
@@ -441,6 +444,11 @@ const renderConsentCategories = (categories) => {
     c0003: 'Functional',
     c0004: 'Targeting / Advertising',
     c0005: 'Social Media',
+    necessary: 'Strictly Necessary',
+    functional: 'Functional',
+    analytics: 'Analytics',
+    advertisement: 'Advertising',
+    other: 'Other',
   };
   const categoryOrder = ['c0001', 'c0002', 'c0003', 'c0004', 'c0005'];
   const getCategoryKey = (category) => {
@@ -494,7 +502,11 @@ const renderConsentCategories = (categories) => {
       const trimmed = label.trim();
       const lower = trimmed.toLowerCase();
       if (categoryNameMap[lower]) {
-        displayLabel = `${trimmed.toUpperCase()}: ${categoryNameMap[lower]}`;
+        if (lower.startsWith('c')) {
+          displayLabel = `${trimmed.toUpperCase()}: ${categoryNameMap[lower]}`;
+        } else {
+          displayLabel = categoryNameMap[lower];
+        }
       }
     }
     pill.className = accepted
@@ -509,9 +521,11 @@ const applyConsentSnapshot = (payload) => {
   const required = payload.required || {};
   const present = payload.present || {};
   const state = payload.state || {};
+  const gpc = payload.gpc || {};
   setConsentPill(consentRequired, required.value || 'Unknown', required.tone);
   setConsentPill(consentPresent, present.value || 'Unknown', present.tone);
   setConsentPill(consentState, state.value || 'Unknown', state.tone);
+  setConsentPill(consentGpc, gpc.value || 'Unknown', gpc.tone);
   renderConsentCategories(payload.categories || []);
   if (consentMeta) {
     const capturedAt = payload.captured_at
@@ -528,6 +542,7 @@ const fetchConsentSnapshot = (options = {}) => {
     return;
   }
   const silent = Boolean(options.silent);
+  const forceRender = Boolean(options.forceRender);
   const now = Date.now();
   if (consentRefreshInFlight) {
     return;
@@ -569,7 +584,12 @@ const fetchConsentSnapshot = (options = {}) => {
       tabIdToUuid.set(tabId, tabUuid);
       const coreSignature = buildConsentCoreSignature(payload);
       const prevCoreSignature = consentCoreSignaturesByTab.get(tabUuid);
-      if (silent && prevCoreSignature && coreSignature === prevCoreSignature) {
+      if (
+        silent &&
+        !forceRender &&
+        prevCoreSignature &&
+        coreSignature === prevCoreSignature
+      ) {
         if (consentStatus && consentStatus.textContent) {
           consentStatus.textContent = '';
         }
@@ -641,7 +661,7 @@ const applySnapshotsForTab = ({ tabId, url }) => {
 getActiveTabInfo((info) => {
   applySnapshotsForTab(info);
   if (isConsentActive()) {
-    fetchConsentSnapshot({ silent: true });
+    fetchConsentSnapshot({ silent: true, forceRender: true });
     startConsentPolling();
   } else {
     stopConsentPolling();
@@ -654,7 +674,7 @@ document.addEventListener('visibilitychange', () => {
     return;
   }
   if (isConsentActive()) {
-    fetchConsentSnapshot({ silent: true });
+    fetchConsentSnapshot({ silent: true, forceRender: true });
     startConsentPolling();
   } else {
     stopConsentPolling();
@@ -669,7 +689,7 @@ if (chrome.tabs && chrome.tabs.onActivated) {
       }
       applySnapshotsForTab({ tabId: info.tabId, url: tab.url || null });
       if (isConsentActive()) {
-        fetchConsentSnapshot({ silent: true });
+        fetchConsentSnapshot({ silent: true, forceRender: true });
         startConsentPolling();
       } else {
         stopConsentPolling();
@@ -692,7 +712,7 @@ if (chrome.tabs && chrome.tabs.onUpdated) {
         setStorageEmpty('No snapshot yet for this tab.');
         setConsentEmpty('No snapshot yet for this tab.');
         if (isConsentActive()) {
-          fetchConsentSnapshot({ silent: true });
+          fetchConsentSnapshot({ silent: true, forceRender: true });
           startConsentPolling();
         } else {
           stopConsentPolling();
@@ -701,7 +721,7 @@ if (chrome.tabs && chrome.tabs.onUpdated) {
     }
     if (changeInfo.status === 'complete' && tabId === currentTabId) {
       if (isConsentActive()) {
-        fetchConsentSnapshot({ silent: true });
+        fetchConsentSnapshot({ silent: true, forceRender: true });
         startConsentPolling();
       } else {
         stopConsentPolling();

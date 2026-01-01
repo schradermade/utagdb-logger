@@ -44,6 +44,8 @@
   let enabled = false;
   let lastDbIndex = 0;
   let dbGeneration = 0;
+  let lastGpcValue;
+  let gpcInitialized = false;
 
   const postLog = (entry, meta = {}) => {
     window.postMessage(
@@ -128,6 +130,19 @@
     ensureWrapped();
     if (enabled) {
       drainDbLog();
+    }
+    const currentGpc = navigator.globalPrivacyControl;
+    if (!gpcInitialized || currentGpc !== lastGpcValue) {
+      gpcInitialized = true;
+      lastGpcValue = currentGpc;
+      window.postMessage(
+        {
+          source: 'tealium-extension',
+          type: 'gpc_signal',
+          value: currentGpc,
+        },
+        '*'
+      );
     }
   }, 1000);
 
