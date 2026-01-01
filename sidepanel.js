@@ -506,6 +506,36 @@ const buildCaseFile = (callback) => {
   });
 };
 
+const transformCaseFileForPreview = (caseFile) => {
+  if (!caseFile || typeof caseFile !== 'object') {
+    return caseFile;
+  }
+  const logger = caseFile.utagdb_logger;
+  if (!logger || !Array.isArray(logger.logs)) {
+    return caseFile;
+  }
+  const previewLogs = logger.logs.map((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return entry;
+    }
+    const nextEntry = { ...entry };
+    if (nextEntry.console && Array.isArray(nextEntry.console.args)) {
+      nextEntry.console = {
+        ...nextEntry.console,
+        args: nextEntry.console.args.map(parseJsonString),
+      };
+    }
+    return nextEntry;
+  });
+  return {
+    ...caseFile,
+    utagdb_logger: {
+      ...logger,
+      logs: previewLogs,
+    },
+  };
+};
+
 function refreshExportPreview() {
   if (!exportStatus || !exportPreview) {
     return;
@@ -522,7 +552,9 @@ function refreshExportPreview() {
       return;
     }
     exportCaseFileText = JSON.stringify(caseFile, null, 2);
-    const lines = exportCaseFileText.split('\n');
+    const previewCaseFile = transformCaseFileForPreview(caseFile);
+    const previewText = JSON.stringify(previewCaseFile, null, 2);
+    const lines = previewText.split('\n');
     const padded = String(lines.length).length;
     const numbered = lines
       .map((line, index) => `${String(index + 1).padStart(padded, ' ')} | ${line}`)

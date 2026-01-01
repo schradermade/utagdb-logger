@@ -11,10 +11,38 @@
         min-width: 340px;
         background: #1f1f1f;
         color: #e6e6e6;
-        overflow-x: hidden;
+        overflow: hidden;
+        scrollbar-color: #2b2b2b #141414;
+        scrollbar-width: thin;
+        scrollbar-gutter: stable;
       }
       html {
-        overflow-x: hidden;
+        overflow: hidden;
+        scrollbar-color: #2b2b2b #141414;
+        scrollbar-width: thin;
+        scrollbar-gutter: stable;
+      }
+      body::-webkit-scrollbar {
+        width: 10px;
+      }
+      body::-webkit-scrollbar-track {
+        background: #141414;
+      }
+      body::-webkit-scrollbar-thumb {
+        background: #2b2b2b;
+        border-radius: 8px;
+        border: 2px solid #141414;
+      }
+      html::-webkit-scrollbar {
+        width: 10px;
+      }
+      html::-webkit-scrollbar-track {
+        background: #141414;
+      }
+      html::-webkit-scrollbar-thumb {
+        background: #2b2b2b;
+        border-radius: 8px;
+        border: 2px solid #141414;
       }
       :root {
         --header-height: 52px;
@@ -61,6 +89,11 @@
       }
       .content {
         padding: calc(var(--header-height) + var(--header-gap) + 8px) 16px 16px;
+        height: calc(100vh - var(--header-height) - var(--header-gap));
+        overflow-y: auto;
+        overflow-x: hidden;
+        scrollbar-color: #2b2b2b #141414;
+        scrollbar-width: thin;
       }
       #tools-view {
         padding-top: calc(var(--feature-shell-height) + var(--header-gap) + 12px);
