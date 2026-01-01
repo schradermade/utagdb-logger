@@ -68,6 +68,7 @@ This repository contains a Chrome MV3 extension and a small local Node server us
 ## UI Design
 - Dark gray theme with compact side panel header.
 - Horizontal feature card slider switches between stubbed tools and the logger.
+- Consent Monitor view shows Required, Present, State, consented categories, and raw signal list.
 - Filename input is required and locked during recording.
 - Recording state shows:
   - `Sending to: <endpoint>`
@@ -86,6 +87,7 @@ This repository contains a Chrome MV3 extension and a small local Node server us
 - **Error serialization**: `Error` objects are captured with `name`, `message`, `stack`, and optional `cause`.
 - **Counts**: live count is tracked in the background service worker and includes start/end entries.
 - **Side panel**: action click opens the side panel; popup UI remains for backward compatibility.
+- **Consent Monitor**: `content.js` reads OneTrust, Cookiebot, Didomi, Digital Control Room, TrustArc, Usercentrics, TCF (`__tcfapi`), USP (`__uspapi`), `tci.*`, and GPC/opt-out cookies to build Required/Present/State.
 
 ## Configuration
 - **Endpoint**: `http://localhost:3005`

@@ -167,6 +167,108 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return;
   }
 
+  if (message.type === 'get_storage_map') {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const activeTab = tabs[0];
+      if (!activeTab || !activeTab.id) {
+        sendResponse({ ok: false, error: 'No active tab' });
+        return;
+      }
+      if (!activeTab.url || !activeTab.url.startsWith('http')) {
+        sendResponse({ ok: false, error: 'Unsupported tab URL' });
+        return;
+      }
+      const requestSnapshot = () => {
+        chrome.tabs.sendMessage(
+          activeTab.id,
+          { type: 'get_storage_map' },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              sendResponse({
+                ok: false,
+                error: chrome.runtime.lastError.message,
+              });
+              return;
+            }
+            sendResponse(response || { ok: false, error: 'No response' });
+          }
+        );
+      };
+
+      chrome.tabs.sendMessage(activeTab.id, { type: 'get_storage_map' }, () => {
+        if (chrome.runtime.lastError) {
+          chrome.scripting.executeScript(
+            { target: { tabId: activeTab.id }, files: ['content.js'] },
+            () => {
+              if (chrome.runtime.lastError) {
+                sendResponse({
+                  ok: false,
+                  error: chrome.runtime.lastError.message,
+                });
+                return;
+              }
+              requestSnapshot();
+            }
+          );
+          return;
+        }
+        requestSnapshot();
+      });
+    });
+    return true;
+  }
+
+  if (message.type === 'get_consent_status') {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const activeTab = tabs[0];
+      if (!activeTab || !activeTab.id) {
+        sendResponse({ ok: false, error: 'No active tab' });
+        return;
+      }
+      if (!activeTab.url || !activeTab.url.startsWith('http')) {
+        sendResponse({ ok: false, error: 'Unsupported tab URL' });
+        return;
+      }
+      const requestSnapshot = () => {
+        chrome.tabs.sendMessage(
+          activeTab.id,
+          { type: 'get_consent_status' },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              sendResponse({
+                ok: false,
+                error: chrome.runtime.lastError.message,
+              });
+              return;
+            }
+            sendResponse(response || { ok: false, error: 'No response' });
+          }
+        );
+      };
+
+      chrome.tabs.sendMessage(activeTab.id, { type: 'get_consent_status' }, () => {
+        if (chrome.runtime.lastError) {
+          chrome.scripting.executeScript(
+            { target: { tabId: activeTab.id }, files: ['content.js'] },
+            () => {
+              if (chrome.runtime.lastError) {
+                sendResponse({
+                  ok: false,
+                  error: chrome.runtime.lastError.message,
+                });
+                return;
+              }
+              requestSnapshot();
+            }
+          );
+          return;
+        }
+        requestSnapshot();
+      });
+    });
+    return true;
+  }
+
   if (message.type === 'console_log') {
     chrome.storage.local.get(
       {

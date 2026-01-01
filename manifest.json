@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Reads Tealium utag data and sends it to a local app.",
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
-  "host_permissions": ["http://localhost:3005/*"],
+  "host_permissions": ["http://localhost:3005/*", "http://*/*", "https://*/*"],
   "background": {
     "service_worker": "background.js"
   },

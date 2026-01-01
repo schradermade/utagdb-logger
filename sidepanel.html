@@ -107,6 +107,147 @@
       .feature-section.active {
         display: block;
       }
+      .storage-controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .storage-button {
+        border: 1px solid #2a2a2a;
+        background: #1a1a1a;
+        color: #e6e6e6;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .storage-button:active {
+        transform: translateY(1px);
+      }
+      .storage-search {
+        flex: 1 1 auto;
+      }
+      .storage-search input {
+        width: 100%;
+        padding: 6px 8px;
+        font-size: 11px;
+        background: #1a1a1a;
+        color: #e6e6e6;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+      }
+      .storage-group {
+        margin-top: 12px;
+      }
+      .storage-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        color: #b6b6b6;
+        margin-bottom: 6px;
+      }
+      .storage-list {
+        border: 1px solid #262626;
+        background: #121212;
+        border-radius: 10px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .storage-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .storage-key {
+        font-size: 11px;
+        color: #e3e3e3;
+      }
+      .storage-value {
+        font-size: 10px;
+        color: #bdbdbd;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      }
+      .storage-empty {
+        font-size: 10px;
+        color: #8f8f8f;
+      }
+      .consent-summary {
+        border: 1px solid #262626;
+        background: #121212;
+        border-radius: 10px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .consent-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 11px;
+        color: #cfcfcf;
+      }
+      .consent-pill {
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        background: #1a1a1a;
+        border: 1px solid #2a2a2a;
+        color: #f0f0f0;
+      }
+      .consent-pill.dim {
+        border-color: #3a3a3a;
+        color: #bdbdbd;
+        background: #131313;
+      }
+      .consent-pill-plain {
+        display: inline-flex;
+        border: none;
+        background: transparent;
+        padding: 0;
+        letter-spacing: 0.2px;
+        text-transform: none;
+      }
+      .consent-pill.ok {
+        border-color: #3b7a4d;
+        background: #0f1712;
+      }
+      .consent-pill.category-ok {
+        border-color: #8a6a1f;
+        background: #1a1406;
+      }
+      .consent-pill.warn {
+        border-color: #80662b;
+        background: #1a1408;
+      }
+      .consent-pill.bad {
+        border-color: #7a3b3b;
+        background: #1a0f0f;
+      }
+      .consent-subitems {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-left: 10px;
+        align-items: flex-start;
+      }
+      .consent-meta {
+        font-size: 10px;
+        color: #9b9b9b;
+        margin-top: 8px;
+      }
       .title {
         font-size: 12px;
         font-weight: 600;
@@ -326,7 +467,35 @@
       </section>
 
       <section id="feature-consent" class="feature-section" role="tabpanel">
-        <div class="status">Consent Monitor is coming soon.</div>
+        <div class="storage-controls">
+          <button id="consent-refresh" class="storage-button" type="button">Refresh</button>
+        </div>
+        <div id="consent-status" class="status">No snapshot yet.</div>
+
+        <div class="consent-summary">
+          <div class="consent-row">
+            <span>Consent Required</span>
+            <span id="consent-required" class="consent-pill">Unknown</span>
+          </div>
+          <div class="consent-row">
+            <span>Consent Present</span>
+            <span id="consent-present" class="consent-pill">Unknown</span>
+          </div>
+          <div class="consent-row">
+            <span>Consent State</span>
+            <span id="consent-state" class="consent-pill">Unknown</span>
+          </div>
+          <div id="consent-categories" class="consent-subitems"></div>
+        </div>
+        <div id="consent-meta" class="consent-meta"></div>
+
+        <div class="storage-group">
+          <div class="storage-header">
+            <span>Signals</span>
+            <span id="consent-signal-count">0</span>
+          </div>
+          <div id="consent-signal-list" class="storage-list"></div>
+        </div>
       </section>
 
       <section id="feature-network" class="feature-section" role="tabpanel">
@@ -338,7 +507,45 @@
       </section>
 
       <section id="feature-storage" class="feature-section" role="tabpanel">
-        <div class="status">Storage Map is coming soon.</div>
+        <div class="storage-controls">
+          <button id="storage-snapshot" class="storage-button" type="button">Snapshot</button>
+          <label class="storage-search">
+            <input id="storage-search" type="text" placeholder="Filter keys/values" />
+          </label>
+        </div>
+        <div id="storage-status" class="status">No snapshot yet.</div>
+
+        <div class="storage-group">
+          <div class="storage-header">
+            <span>Cookies</span>
+            <span id="storage-cookies-count">0</span>
+          </div>
+          <div id="storage-cookies-list" class="storage-list"></div>
+        </div>
+
+        <div class="storage-group">
+          <div class="storage-header">
+            <span>Local Storage</span>
+            <span id="storage-local-count">0</span>
+          </div>
+          <div id="storage-local-list" class="storage-list"></div>
+        </div>
+
+        <div class="storage-group">
+          <div class="storage-header">
+            <span>Session Storage</span>
+            <span id="storage-session-count">0</span>
+          </div>
+          <div id="storage-session-list" class="storage-list"></div>
+        </div>
+
+        <div class="storage-group">
+          <div class="storage-header">
+            <span>utag.data</span>
+            <span id="storage-utag-count">0</span>
+          </div>
+          <div id="storage-utag-list" class="storage-list"></div>
+        </div>
       </section>
 
       <section id="feature-qa" class="feature-section" role="tabpanel">
