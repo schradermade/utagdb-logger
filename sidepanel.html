@@ -16,15 +16,29 @@
       html {
         overflow-x: hidden;
       }
+      :root {
+        --header-height: 52px;
+        --feature-shell-height: 62px;
+        --header-gap: 12px;
+      }
       .header {
         background: #121212;
         padding: 8px 16px;
         margin: 0;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
+        height: var(--header-height);
+        display: flex;
+        align-items: center;
       }
       .top-tabs {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 8px;
+        width: 100%;
       }
       .top-tab {
         border: 1px solid #2a2a2a;
@@ -46,17 +60,26 @@
         color: #e3f7ea;
       }
       .content {
-        padding: 0 16px 16px;
+        padding: calc(var(--header-height) + var(--header-gap) + 8px) 16px 16px;
+      }
+      #tools-view {
+        padding-top: calc(var(--feature-shell-height) + var(--header-gap) + 12px);
       }
       .feature-shell {
-        margin: 0 -16px 12px;
-        padding: 6px 16px;
+        margin: 0;
+        padding: 8px 16px;
         border-radius: 0;
         border-top: 0;
         border-bottom: 1px solid #262626;
         border-left: 0;
         border-right: 0;
         background: #171717;
+        position: fixed;
+        top: calc(var(--header-height) + var(--header-gap));
+        left: 0;
+        right: 0;
+        z-index: 9;
+        height: var(--feature-shell-height);
       }
       .feature-shell-title {
         font-size: 11px;
