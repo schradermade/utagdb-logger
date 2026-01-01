@@ -306,6 +306,10 @@ const iqStatus = document.getElementById('iq-status');
 const iqPreview = document.getElementById('iq-preview');
 const iqPreviewCount = document.getElementById('iq-preview-count');
 const iqCopyButton = document.getElementById('iq-copy');
+const iqMeta = document.getElementById('iq-meta');
+const iqMetaSection = document.getElementById('iq-meta-section');
+const iqMetaUrl = document.getElementById('iq-meta-url');
+const iqMetaTime = document.getElementById('iq-meta-time');
 const iqIncludeInputs = Array.from(document.querySelectorAll('.iq-include'));
 const iqIncludesCustom = document.getElementById('iq-includes-custom');
 const exportIncludeLogger = document.getElementById('export-include-logger');
@@ -533,6 +537,9 @@ const setIqStatus = (message, isError) => {
   }
   iqStatus.textContent = message;
   iqStatus.style.color = isError ? '#ff6b6b' : '';
+  if (iqMetaSection) {
+    iqMetaSection.hidden = Boolean(message);
+  }
 };
 
 const setIqToken = (token) => {
@@ -607,6 +614,9 @@ const getIqIncludes = () => {
 const applyIqSnapshot = (payload) => {
   if (!payload) {
     setIqStatus('No profile fetched yet.', false);
+    if (iqMetaSection) {
+      iqMetaSection.hidden = true;
+    }
     if (iqPreview) {
       iqPreview.textContent = '';
     }
@@ -619,7 +629,16 @@ const applyIqSnapshot = (payload) => {
     ? new Date(payload.captured_at).toLocaleTimeString()
     : 'just now';
   const url = payload.url || 'profile';
-  setIqStatus(`Snapshot from ${url} at ${capturedAt}`, false);
+  setIqStatus('', false);
+  if (iqMetaUrl) {
+    iqMetaUrl.textContent = url;
+  }
+  if (iqMetaTime) {
+    iqMetaTime.textContent = `Snapshot at ${capturedAt}`;
+  }
+  if (iqMetaSection) {
+    iqMetaSection.hidden = false;
+  }
   let previewText = '';
   try {
     previewText = JSON.stringify(payload.response || {}, null, 2);

@@ -229,6 +229,12 @@
       #feature-iq {
         padding-bottom: 96px;
       }
+      #feature-iq > * + * {
+        margin-top: 16px;
+      }
+      #feature-iq .status {
+        margin-top: 0;
+      }
       .storage-controls {
         display: flex;
         gap: 8px;
@@ -315,8 +321,8 @@
       .iq-form {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        margin-bottom: 12px;
+        gap: 0;
+        margin-bottom: 0;
       }
       .iq-actions {
         display: flex;
@@ -369,11 +375,34 @@
         max-height: calc(100vh - 340px);
         overflow: auto;
       }
+      .iq-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 6px;
+        margin-bottom: 12px;
+      }
+      .iq-meta-url {
+        background: #1b1b1b;
+        border: 1px solid #2b2b2b;
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-size: 12px;
+        color: #d6d6d6;
+        word-break: break-all;
+        font-family: SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      }
+      .iq-meta-time {
+        font-size: 11px;
+        color: #9b9b9b;
+      }
       .iq-preview-shell {
         border: 1px solid #2b2b2b;
         background: #1b1b1b;
         border-radius: 12px;
         padding: 12px;
+        width: 100%;
+        box-sizing: border-box;
       }
       .iq-preview-toolbar {
         display: flex;
@@ -436,6 +465,12 @@
       }
       .storage-group {
         margin-top: 12px;
+      }
+      #feature-iq .storage-group {
+        margin-top: 0;
+      }
+      #iq-meta-section + .storage-group {
+        margin-top: 16px;
       }
       .storage-header {
         display: flex;
@@ -965,6 +1000,13 @@
           </div>
         </div>
         <div id="iq-status" class="status">No profile fetched yet.</div>
+        <div id="iq-meta-section" class="panel-section" hidden>
+          <div class="panel-section-title"><span>Snapshot</span><span>Request</span></div>
+          <div id="iq-meta" class="iq-meta">
+            <div id="iq-meta-url" class="iq-meta-url"></div>
+            <div id="iq-meta-time" class="iq-meta-time"></div>
+          </div>
+        </div>
         <div class="storage-group">
           <div class="storage-header">
             <span>Profile Preview</span>
