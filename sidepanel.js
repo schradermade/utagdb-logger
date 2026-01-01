@@ -535,6 +535,14 @@ const setIqHost = (host) => {
   }
 };
 
+const setButtonLoading = (button, isLoading) => {
+  if (!button) {
+    return;
+  }
+  button.classList.toggle('is-loading', isLoading);
+  button.disabled = Boolean(isLoading);
+};
+
 const getIqFormValues = () => ({
   account: iqAccountInput ? iqAccountInput.value.trim() : '',
   profile: iqProfileInput ? iqProfileInput.value.trim() : '',
@@ -598,6 +606,7 @@ const fetchIqToken = () => {
     setIqStatus('Username and API key are required.', true);
     return;
   }
+  setButtonLoading(iqAuthButton, true);
   setIqStatus('Requesting token...', false);
   const url = `https://platform.tealiumapis.com/v3/auth/accounts/${encodeURIComponent(
     account
@@ -624,6 +633,7 @@ const fetchIqToken = () => {
       const host = data.host || data.api_host || '';
       if (!token) {
         setIqStatus('Token missing from response.', true);
+        setButtonLoading(iqAuthButton, false);
         return;
       }
       const tabUuid = getCurrentTabUuid();
@@ -638,9 +648,11 @@ const fetchIqToken = () => {
         setIqHost(host);
       }
       setIqStatus('Token received.', false);
+      setButtonLoading(iqAuthButton, false);
     })
     .catch((err) => {
       setIqStatus(err.message || 'Failed to fetch token.', true);
+      setButtonLoading(iqAuthButton, false);
     });
 };
 
@@ -659,6 +671,7 @@ const fetchIqProfile = () => {
     setIqStatus('Host is required.', true);
     return;
   }
+  setButtonLoading(iqFetchButton, true);
   const includes = getIqIncludes();
   const params = new URLSearchParams();
   includes.forEach((value) => params.append('includes', value));
@@ -679,6 +692,7 @@ const fetchIqProfile = () => {
     .then(({ ok, data }) => {
       if (!ok) {
         setIqStatus(data && data.message ? data.message : 'Failed to fetch profile.', true);
+        setButtonLoading(iqFetchButton, false);
         return;
       }
       const snapshot = {
@@ -697,9 +711,11 @@ const fetchIqProfile = () => {
         saveSessionSnapshot(getSessionKeys(tabUuid).iqProfile, snapshot);
       }
       applyIqSnapshot(snapshot);
+      setButtonLoading(iqFetchButton, false);
     })
     .catch((err) => {
       setIqStatus(err.message || 'Failed to fetch profile.', true);
+      setButtonLoading(iqFetchButton, false);
     });
 };
 
