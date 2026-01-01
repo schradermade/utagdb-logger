@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Tealium Debug Logger</title>
+    <title>Jarvis</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -16,6 +16,9 @@
         background: #252525;
         padding: 12px 16px;
         margin: 0 0 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
       .content {
         padding: 0 16px 16px;
@@ -27,6 +30,10 @@
         color: #f1f1f1;
         letter-spacing: 0.6px;
         text-transform: uppercase;
+      }
+      .app-icon {
+        width: 18px;
+        height: 18px;
       }
       .field {
         display: flex;
@@ -137,7 +144,8 @@
   </head>
   <body>
     <div class="header">
-      <div class="title">Tealium utag.DB Logger</div>
+      <img class="app-icon" src="jarvis-robot.png" alt="Jarvis" />
+      <div class="title">Jarvis</div>
     </div>
     <div class="content">
       <label id="filename-field" class="field">

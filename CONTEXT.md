@@ -1,7 +1,7 @@
-# Tealium Debug Logger — Project Documentation
+# Jarvis — Project Documentation
 
 ## Overview
-This repository contains a Chrome MV3 extension and a small local Node server used to capture Tealium `utag.DB` debug logs from a single browser tab. The extension provides a focused workflow for starting/stopping a recording session, and each session writes to its own timestamped log file. The UI is a compact, dark‑mode side panel with a feature switcher and a dedicated logger view.
+This repository contains Jarvis, a Chrome MV3 extension and a small local Node server used to capture Tealium `utag.DB` debug logs from a single browser tab. The extension provides a focused workflow for starting/stopping a recording session, and each session writes to its own timestamped log file. The UI is a compact, dark‑mode side panel with a feature switcher and a dedicated logger view.
 
 ## Goals
 - Capture `utag.DB` logs reliably from page context (not from console scraping).

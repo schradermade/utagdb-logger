@@ -1,4 +1,4 @@
-# Tealium Debug Logger Extension
+# Jarvis Extension
 
 A lightweight Chrome extension that captures `utag.DB` debug logs from a single tab and streams them to a local Node server for analysis. Each recording session writes to its own timestamped log file.
 

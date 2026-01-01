@@ -500,7 +500,7 @@ const buildCaseFile = (callback) => {
       const caseFile = {
         generated_at: generatedAt,
         app: {
-          name: manifest.name || 'Tealium Debug Logger',
+          name: manifest.name || 'Jarvis',
           version: manifest.version || 'unknown',
         },
         utagdb_logger: includeLogger

@@ -1,15 +1,22 @@
 {
   "manifest_version": 3,
-  "name": "Tealium Data Sender",
+  "name": "Jarvis",
   "version": "0.1.0",
-  "description": "Reads Tealium utag data and sends it to a local app.",
+  "description": "Tealium debugging toolkit and case file exporter.",
+  "icons": {
+    "16": "jarvis-robot.png",
+    "32": "jarvis-robot.png",
+    "48": "jarvis-robot.png",
+    "128": "jarvis-robot.png"
+  },
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel", "downloads"],
   "host_permissions": ["http://localhost:3005/*", "http://*/*", "https://*/*"],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Send Tealium Data"
+    "default_title": "Jarvis",
+    "default_icon": "jarvis-robot.png"
   },
   "side_panel": {
     "default_path": "sidepanel.html"
