@@ -47,6 +47,7 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
 - Export tab builds a case file combining:
   - `utagdb_logger` (latest session logs + metadata)
   - `consent_monitor` (latest per-tab consent snapshot)
+  - `iq_profile` (latest per-tab iQ profile snapshot)
 - Export supports toggles and redaction options for URLs and signal values.
 - Preview is pretty-printed and line-numbered, but the exported JSON remains raw (no data shape changes).
 - iQ Profile tab authenticates via `POST /v3/auth/accounts/<account>/profiles/<profile>` and fetches profile JSON from `us-west-2-platform` with `includes` parameters.

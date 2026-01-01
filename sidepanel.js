@@ -273,6 +273,7 @@ const iqIncludeInputs = Array.from(document.querySelectorAll('.iq-include'));
 const iqIncludesCustom = document.getElementById('iq-includes-custom');
 const exportIncludeLogger = document.getElementById('export-include-logger');
 const exportIncludeConsent = document.getElementById('export-include-consent');
+const exportIncludeIq = document.getElementById('export-include-iq');
 const exportRedactUrls = document.getElementById('export-redact-urls');
 const exportRedactSignals = document.getElementById('export-redact-signals');
 const exportSize = document.getElementById('export-size');
@@ -677,6 +678,7 @@ const buildCaseFile = (callback) => {
   const redactSignals = Boolean(exportRedactSignals && exportRedactSignals.checked);
   const includeLogger = !exportIncludeLogger || exportIncludeLogger.checked;
   const includeConsent = !exportIncludeConsent || exportIncludeConsent.checked;
+  const includeIq = !exportIncludeIq || exportIncludeIq.checked;
   const currentUuid = getCurrentTabUuid();
 
   chrome.runtime.sendMessage({ type: 'get_enabled' }, (response) => {
@@ -713,6 +715,10 @@ const buildCaseFile = (callback) => {
           const rightTime = right && right.captured_at ? right.captured_at : '';
           return leftTime.localeCompare(rightTime);
         });
+      const iqSnapshotKey = currentUuid
+        ? `iqProfileSnapshot:tab:${currentUuid}`
+        : null;
+      const iqSnapshot = iqSnapshotKey ? items[iqSnapshotKey] : null;
       const sessionMeta = items[metaKey] || null;
       const sessionLogs = Array.isArray(items[logsKey]) ? items[logsKey] : [];
       const redactedLogs = redactUrls
@@ -747,6 +753,11 @@ const buildCaseFile = (callback) => {
           ? {
               snapshot_count: consentSnapshots.length,
               snapshots: consentSnapshots,
+            }
+          : null,
+        iq_profile: includeIq
+          ? {
+              snapshot: iqSnapshot || null,
             }
           : null,
       };
@@ -849,6 +860,9 @@ if (exportIncludeLogger) {
 }
 if (exportIncludeConsent) {
   exportIncludeConsent.addEventListener('change', refreshExportPreview);
+}
+if (exportIncludeIq) {
+  exportIncludeIq.addEventListener('change', refreshExportPreview);
 }
 
 if (iqAuthButton) {
