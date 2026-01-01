@@ -49,6 +49,51 @@ const storageUtagCount = document.getElementById('storage-utag-count');
 
 let storageData = null;
 let storageFilter = '';
+let currentTabId = null;
+const storageSnapshotsByTab = new Map();
+const consentSnapshotsByTab = new Map();
+
+const getActiveTabId = (callback) => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tabId = tabs && tabs[0] && tabs[0].id ? tabs[0].id : null;
+    callback(tabId);
+  });
+};
+
+const clearStorageLists = () => {
+  renderList(storageCookiesList, [], '');
+  renderList(storageLocalList, [], '');
+  renderList(storageSessionList, [], '');
+  renderList(storageUtagList, [], '');
+  updateCounts({ cookies: 0, local: 0, session: 0, utag: 0 });
+};
+
+const setStorageSnapshot = (payload) => {
+  const capturedAt = payload.captured_at
+    ? new Date(payload.captured_at).toLocaleTimeString()
+    : 'just now';
+  const url = payload.url || 'current tab';
+  storageStatus.textContent = `Snapshot from ${url} at ${capturedAt}`;
+  storageData = {
+    cookies: payload.cookies || [],
+    localStorage: payload.localStorage || [],
+    sessionStorage: payload.sessionStorage || [],
+    utag: payload.utag || [],
+  };
+  updateCounts({
+    cookies: storageData.cookies.length,
+    local: storageData.localStorage.length,
+    session: storageData.sessionStorage.length,
+    utag: storageData.utag.length,
+  });
+  applyStorageFilter();
+};
+
+const setStorageEmpty = (message) => {
+  storageData = null;
+  storageStatus.textContent = message;
+  clearStorageLists();
+};
 
 const consentRefreshButton = document.getElementById('consent-refresh');
 const consentStatus = document.getElementById('consent-status');
@@ -154,36 +199,28 @@ const collectStorage = () => {
     return;
   }
   storageStatus.textContent = 'Collecting snapshot...';
-  chrome.runtime.sendMessage({ type: 'get_storage_map' }, (response) => {
-    if (chrome.runtime.lastError) {
-      storageStatus.textContent = chrome.runtime.lastError.message;
+  getActiveTabId((tabId) => {
+    if (!tabId) {
+      setStorageEmpty('No active tab.');
       return;
     }
-    if (!response || !response.ok) {
-      storageStatus.textContent = response && response.error
-        ? response.error
-        : 'Failed to collect snapshot.';
-      return;
-    }
-    const payload = response.data || {};
-    const capturedAt = payload.captured_at
-      ? new Date(payload.captured_at).toLocaleTimeString()
-      : 'just now';
-    const url = payload.url || 'current tab';
-    storageStatus.textContent = `Snapshot from ${url} at ${capturedAt}`;
-    storageData = {
-      cookies: payload.cookies || [],
-      localStorage: payload.localStorage || [],
-      sessionStorage: payload.sessionStorage || [],
-      utag: payload.utag || [],
-    };
-    updateCounts({
-      cookies: storageData.cookies.length,
-      local: storageData.localStorage.length,
-      session: storageData.sessionStorage.length,
-      utag: storageData.utag.length,
+    chrome.runtime.sendMessage({ type: 'get_storage_map', tabId }, (response) => {
+      if (chrome.runtime.lastError) {
+        storageStatus.textContent = chrome.runtime.lastError.message;
+        return;
+      }
+      if (!response || !response.ok) {
+        storageStatus.textContent = response && response.error
+          ? response.error
+          : 'Failed to collect snapshot.';
+        return;
+      }
+      const payload = response.data || {};
+      storageSnapshotsByTab.set(tabId, payload);
+      if (tabId === currentTabId) {
+        setStorageSnapshot(payload);
+      }
     });
-    applyStorageFilter();
   });
 };
 
@@ -225,6 +262,20 @@ const renderConsentSignals = (signals) => {
   });
   if (consentSignalCount) {
     consentSignalCount.textContent = String(signals.length);
+  }
+};
+
+const setConsentEmpty = (message) => {
+  if (consentStatus) {
+    consentStatus.textContent = message;
+  }
+  setConsentPill(consentRequired, 'Unknown', null);
+  setConsentPill(consentPresent, 'Unknown', null);
+  setConsentPill(consentState, 'Unknown', null);
+  renderConsentCategories([]);
+  renderConsentSignals([]);
+  if (consentMeta) {
+    consentMeta.textContent = '';
   }
 };
 
@@ -326,22 +377,72 @@ const fetchConsentSnapshot = () => {
     return;
   }
   consentStatus.textContent = 'Collecting snapshot...';
-  chrome.runtime.sendMessage({ type: 'get_consent_status' }, (response) => {
-    if (chrome.runtime.lastError) {
-      consentStatus.textContent = chrome.runtime.lastError.message;
+  getActiveTabId((tabId) => {
+    if (!tabId) {
+      setConsentEmpty('No active tab.');
       return;
     }
-    if (!response || !response.ok) {
-      consentStatus.textContent = response && response.error
-        ? response.error
-        : 'Failed to collect consent.';
-      return;
-    }
-    consentStatus.textContent = '';
-    applyConsentSnapshot(response.data || {});
+    chrome.runtime.sendMessage({ type: 'get_consent_status', tabId }, (response) => {
+      if (chrome.runtime.lastError) {
+        consentStatus.textContent = chrome.runtime.lastError.message;
+        return;
+      }
+      if (!response || !response.ok) {
+        consentStatus.textContent = response && response.error
+          ? response.error
+          : 'Failed to collect consent.';
+        return;
+      }
+      consentStatus.textContent = '';
+      const payload = response.data || {};
+      consentSnapshotsByTab.set(tabId, payload);
+      if (tabId === currentTabId) {
+        applyConsentSnapshot(payload);
+      }
+    });
   });
 };
 
 if (consentRefreshButton) {
   consentRefreshButton.addEventListener('click', fetchConsentSnapshot);
+}
+
+const applySnapshotsForTab = (tabId) => {
+  currentTabId = tabId;
+  if (!tabId) {
+    setStorageEmpty('No active tab.');
+    setConsentEmpty('No active tab.');
+    return;
+  }
+  const storageSnapshot = storageSnapshotsByTab.get(tabId);
+  if (storageSnapshot) {
+    setStorageSnapshot(storageSnapshot);
+  } else {
+    setStorageEmpty('No snapshot yet for this tab.');
+  }
+  const consentSnapshot = consentSnapshotsByTab.get(tabId);
+  if (consentSnapshot) {
+    applyConsentSnapshot(consentSnapshot);
+  } else {
+    setConsentEmpty('No snapshot yet for this tab.');
+  }
+};
+
+getActiveTabId(applySnapshotsForTab);
+if (chrome.tabs && chrome.tabs.onActivated) {
+  chrome.tabs.onActivated.addListener((info) => {
+    applySnapshotsForTab(info.tabId);
+  });
+}
+if (chrome.tabs && chrome.tabs.onUpdated) {
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.status === 'loading' || changeInfo.url) {
+      storageSnapshotsByTab.delete(tabId);
+      consentSnapshotsByTab.delete(tabId);
+      if (tabId === currentTabId) {
+        setStorageEmpty('No snapshot yet for this tab.');
+        setConsentEmpty('No snapshot yet for this tab.');
+      }
+    }
+  });
 }
