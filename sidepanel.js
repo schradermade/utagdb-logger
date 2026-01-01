@@ -7,6 +7,7 @@ const featureSections = new Map([
   ['session', document.getElementById('feature-session')],
   ['rules', document.getElementById('feature-rules')],
   ['payloads', document.getElementById('feature-payloads')],
+  ['iq', document.getElementById('feature-iq')],
   ['consent', document.getElementById('feature-consent')],
   ['network', document.getElementById('feature-network')],
   ['events', document.getElementById('feature-events')],
@@ -103,6 +104,9 @@ const tabIdToUuid = new Map();
 const storageSnapshotsByTab = new Map();
 const consentSnapshotsByTab = new Map();
 const consentCoreSignaturesByTab = new Map();
+const iqSnapshotsByTab = new Map();
+const iqTokensByTab = new Map();
+const iqHostsByTab = new Map();
 const storageLocal = chrome.storage && chrome.storage.local;
 let lastConsentRefreshAt = 0;
 const CONSENT_REFRESH_COOLDOWN_MS = 1000;
@@ -140,6 +144,7 @@ const stopConsentPolling = () => {
 const getSessionKeys = (tabUuid) => ({
   storage: `storageSnapshot:tab:${tabUuid}`,
   consent: `consentSnapshot:tab:${tabUuid}`,
+  iqProfile: `iqProfileSnapshot:tab:${tabUuid}`,
 });
 
 const saveSessionSnapshot = (key, payload) => {
@@ -168,7 +173,7 @@ const clearSessionSnapshots = (tabUuid) => {
     return;
   }
   const keys = getSessionKeys(tabUuid);
-  storageLocal.remove([keys.storage, keys.consent]);
+  storageLocal.remove([keys.storage, keys.consent, keys.iqProfile]);
 };
 
 const getActiveTabInfo = (callback) => {
@@ -253,6 +258,19 @@ const exportStatus = document.getElementById('export-status');
 const exportPreview = document.getElementById('export-preview');
 const loggerPreview = document.getElementById('logger-preview');
 const loggerPreviewCount = document.getElementById('logger-preview-count');
+const iqAccountInput = document.getElementById('iq-account');
+const iqProfileInput = document.getElementById('iq-profile');
+const iqUsernameInput = document.getElementById('iq-username');
+const iqKeyInput = document.getElementById('iq-key');
+const iqTokenInput = document.getElementById('iq-token');
+const iqHostInput = document.getElementById('iq-host');
+const iqAuthButton = document.getElementById('iq-auth');
+const iqFetchButton = document.getElementById('iq-fetch');
+const iqStatus = document.getElementById('iq-status');
+const iqPreview = document.getElementById('iq-preview');
+const iqPreviewCount = document.getElementById('iq-preview-count');
+const iqIncludeInputs = Array.from(document.querySelectorAll('.iq-include'));
+const iqIncludesCustom = document.getElementById('iq-includes-custom');
 const exportIncludeLogger = document.getElementById('export-include-logger');
 const exportIncludeConsent = document.getElementById('export-include-consent');
 const exportRedactUrls = document.getElementById('export-redact-urls');
@@ -353,6 +371,28 @@ const escapeHtml = (value) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
+const renderPreviewLines = (previewEl, text) => {
+  if (!previewEl) {
+    return 0;
+  }
+  const lines = String(text || '').split('\n');
+  const padded = String(lines.length).length;
+  const numbered = lines
+    .map(
+      (line, index) =>
+        `<span class="preview-line">` +
+        `<span class="preview-line-number" aria-hidden="true">${String(
+          index + 1
+        ).padStart(padded, ' ')}</span>` +
+        `<span class="preview-line-sep" aria-hidden="true"> | </span>` +
+        `<span class="preview-line-text">${escapeHtml(line)}</span>` +
+        `</span>`
+    )
+    .join('');
+  previewEl.innerHTML = numbered;
+  return lines.length;
+};
+
 const transformLogEntryForPreview = (entry) => {
   if (!entry || typeof entry !== 'object') {
     return entry;
@@ -438,6 +478,194 @@ const refreshLoggerPreview = () => {
       loggerPreview.innerHTML = formatted.join('');
     });
   });
+};
+
+const setIqStatus = (message, isError) => {
+  if (!iqStatus) {
+    return;
+  }
+  iqStatus.textContent = message;
+  iqStatus.style.color = isError ? '#ff6b6b' : '';
+};
+
+const setIqToken = (token) => {
+  if (iqTokenInput) {
+    iqTokenInput.value = token || '';
+  }
+};
+
+const setIqHost = (host) => {
+  if (iqHostInput) {
+    iqHostInput.value = host || '';
+  }
+};
+
+const getIqFormValues = () => ({
+  account: iqAccountInput ? iqAccountInput.value.trim() : '',
+  profile: iqProfileInput ? iqProfileInput.value.trim() : '',
+  username: iqUsernameInput ? iqUsernameInput.value.trim() : '',
+  key: iqKeyInput ? iqKeyInput.value.trim() : '',
+  host: iqHostInput ? iqHostInput.value.trim() : '',
+});
+
+const getIqIncludes = () => {
+  const includes = new Set();
+  iqIncludeInputs.forEach((input) => {
+    if (input.checked && input.value) {
+      includes.add(input.value.trim());
+    }
+  });
+  if (iqIncludesCustom && iqIncludesCustom.value) {
+    iqIncludesCustom.value
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .forEach((value) => includes.add(value));
+  }
+  return Array.from(includes);
+};
+
+const applyIqSnapshot = (payload) => {
+  if (!payload) {
+    setIqStatus('No profile fetched yet.', false);
+    if (iqPreview) {
+      iqPreview.textContent = '';
+    }
+    if (iqPreviewCount) {
+      iqPreviewCount.textContent = '0';
+    }
+    return;
+  }
+  const capturedAt = payload.captured_at
+    ? new Date(payload.captured_at).toLocaleTimeString()
+    : 'just now';
+  const url = payload.url || 'profile';
+  setIqStatus(`Snapshot from ${url} at ${capturedAt}`, false);
+  let previewText = '';
+  try {
+    previewText = JSON.stringify(payload.response || {}, null, 2);
+  } catch (err) {
+    previewText = stringifyLogArg(payload.response || {});
+  }
+  const lineCount = renderPreviewLines(iqPreview, previewText);
+  if (iqPreviewCount) {
+    iqPreviewCount.textContent = String(lineCount || 0);
+  }
+};
+
+const fetchIqToken = () => {
+  const { account, profile, username, key } = getIqFormValues();
+  if (!account || !profile) {
+    setIqStatus('Account and profile are required.', true);
+    return;
+  }
+  if (!username || !key) {
+    setIqStatus('Username and API key are required.', true);
+    return;
+  }
+  setIqStatus('Requesting token...', false);
+  const url = `https://platform.tealiumapis.com/v3/auth/accounts/${encodeURIComponent(
+    account
+  )}/profiles/${encodeURIComponent(profile)}`;
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ username, key }).toString(),
+  })
+    .then((response) =>
+      response.json().then((data) => ({ ok: response.ok, data }))
+    )
+    .then(({ ok, data }) => {
+      if (!ok) {
+        setIqStatus(data && data.message ? data.message : 'Failed to fetch token.', true);
+        return;
+      }
+      const token =
+        data.token ||
+        data.accessToken ||
+        data.access_token ||
+        data.id_token ||
+        data.session_token;
+      const host = data.host || data.api_host || '';
+      if (!token) {
+        setIqStatus('Token missing from response.', true);
+        return;
+      }
+      const tabUuid = getCurrentTabUuid();
+      if (tabUuid) {
+        iqTokensByTab.set(tabUuid, token);
+        if (host) {
+          iqHostsByTab.set(tabUuid, host);
+        }
+      }
+      setIqToken(token);
+      if (host) {
+        setIqHost(host);
+      }
+      setIqStatus('Token received.', false);
+    })
+    .catch((err) => {
+      setIqStatus(err.message || 'Failed to fetch token.', true);
+    });
+};
+
+const fetchIqProfile = () => {
+  const { account, profile, host } = getIqFormValues();
+  const token = iqTokenInput ? iqTokenInput.value.trim() : '';
+  if (!account || !profile) {
+    setIqStatus('Account and profile are required.', true);
+    return;
+  }
+  if (!token) {
+    setIqStatus('Token is required.', true);
+    return;
+  }
+  if (!host) {
+    setIqStatus('Host is required.', true);
+    return;
+  }
+  const includes = getIqIncludes();
+  const params = new URLSearchParams();
+  includes.forEach((value) => params.append('includes', value));
+  const urlBase = `https://${host}/v3/tiq/accounts/${encodeURIComponent(
+    account
+  )}/profiles/${encodeURIComponent(profile)}`;
+  const url = params.toString() ? `${urlBase}?${params}` : urlBase;
+  setIqStatus('Fetching profile...', false);
+  fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+    .then((response) =>
+      response.json().then((data) => ({ ok: response.ok, data }))
+    )
+    .then(({ ok, data }) => {
+      if (!ok) {
+        setIqStatus(data && data.message ? data.message : 'Failed to fetch profile.', true);
+        return;
+      }
+      const snapshot = {
+        captured_at: new Date().toISOString(),
+        url,
+        account,
+        profile,
+        host,
+        includes,
+        response: data,
+        tab_uuid: getCurrentTabUuid(),
+      };
+      const tabUuid = snapshot.tab_uuid;
+      if (tabUuid) {
+        iqSnapshotsByTab.set(tabUuid, snapshot);
+        saveSessionSnapshot(getSessionKeys(tabUuid).iqProfile, snapshot);
+      }
+      applyIqSnapshot(snapshot);
+    })
+    .catch((err) => {
+      setIqStatus(err.message || 'Failed to fetch profile.', true);
+    });
 };
 
 const buildCaseFile = (callback) => {
@@ -575,21 +803,7 @@ function refreshExportPreview() {
     exportCaseFileText = JSON.stringify(caseFile, null, 2);
     const previewCaseFile = transformCaseFileForPreview(caseFile);
     const previewText = JSON.stringify(previewCaseFile, null, 2);
-    const lines = previewText.split('\n');
-    const padded = String(lines.length).length;
-    const numbered = lines
-      .map(
-        (line, index) =>
-          `<span class="preview-line">` +
-          `<span class="preview-line-number" aria-hidden="true">${String(
-            index + 1
-          ).padStart(padded, ' ')}</span>` +
-          `<span class="preview-line-sep" aria-hidden="true"> | </span>` +
-          `<span class="preview-line-text">${escapeHtml(line)}</span>` +
-          `</span>`
-      )
-      .join('');
-    exportPreview.innerHTML = numbered;
+    renderPreviewLines(exportPreview, previewText);
     exportStatus.textContent = `Preview updated at ${new Date().toLocaleTimeString()}`;
     if (exportSize) {
       const bytes = new TextEncoder().encode(exportCaseFileText).length;
@@ -635,6 +849,31 @@ if (exportIncludeLogger) {
 }
 if (exportIncludeConsent) {
   exportIncludeConsent.addEventListener('change', refreshExportPreview);
+}
+
+if (iqAuthButton) {
+  iqAuthButton.addEventListener('click', fetchIqToken);
+}
+if (iqFetchButton) {
+  iqFetchButton.addEventListener('click', fetchIqProfile);
+}
+if (iqTokenInput) {
+  iqTokenInput.addEventListener('input', (event) => {
+    const tabUuid = getCurrentTabUuid();
+    if (!tabUuid) {
+      return;
+    }
+    iqTokensByTab.set(tabUuid, event.target.value || '');
+  });
+}
+if (iqHostInput) {
+  iqHostInput.addEventListener('input', (event) => {
+    const tabUuid = getCurrentTabUuid();
+    if (!tabUuid) {
+      return;
+    }
+    iqHostsByTab.set(tabUuid, event.target.value || '');
+  });
 }
 
 refreshLoggerPreview();
@@ -1032,12 +1271,14 @@ const applySnapshotsForTab = ({ tabId, url }) => {
   if (!tabId) {
     setStorageEmpty('No active tab.');
     setConsentEmpty('No active tab.');
+    applyIqSnapshot(null);
     return;
   }
   resolveTabUuid(tabId, (tabUuid) => {
     if (!tabUuid) {
       setStorageEmpty('No snapshot yet for this tab.');
       setConsentEmpty('No snapshot yet for this tab.');
+      applyIqSnapshot(null);
       return;
     }
     currentTabUuid = tabUuid;
@@ -1068,6 +1309,28 @@ const applySnapshotsForTab = ({ tabId, url }) => {
           setConsentEmpty('No snapshot yet for this tab.');
         }
       });
+    }
+    const iqSnapshot = iqSnapshotsByTab.get(tabUuid);
+    if (iqSnapshot) {
+      applyIqSnapshot(iqSnapshot);
+    } else {
+      const iqKey = getSessionKeys(tabUuid).iqProfile;
+      loadSessionSnapshot(iqKey, (payload) => {
+        if (payload) {
+          iqSnapshotsByTab.set(tabUuid, payload);
+          applyIqSnapshot(payload);
+        } else {
+          applyIqSnapshot(null);
+        }
+      });
+    }
+    if (iqTokenInput) {
+      const token = iqTokensByTab.get(tabUuid) || '';
+      iqTokenInput.value = token;
+    }
+    if (iqHostInput) {
+      const host = iqHostsByTab.get(tabUuid) || '';
+      iqHostInput.value = host;
     }
   });
 };
@@ -1119,6 +1382,9 @@ if (chrome.tabs && chrome.tabs.onUpdated) {
       storageSnapshotsByTab.delete(tabUuid);
       consentSnapshotsByTab.delete(tabUuid);
       consentCoreSignaturesByTab.delete(tabUuid);
+      iqSnapshotsByTab.delete(tabUuid);
+      iqTokensByTab.delete(tabUuid);
+      iqHostsByTab.delete(tabUuid);
     }
     tabIdToUuid.delete(tabId);
     clearSessionSnapshots(tabUuid);
@@ -1151,6 +1417,9 @@ if (chrome.tabs && chrome.tabs.onRemoved) {
       storageSnapshotsByTab.delete(tabUuid);
       consentSnapshotsByTab.delete(tabUuid);
       consentCoreSignaturesByTab.delete(tabUuid);
+      iqSnapshotsByTab.delete(tabUuid);
+      iqTokensByTab.delete(tabUuid);
+      iqHostsByTab.delete(tabUuid);
     }
     tabIdToUuid.delete(tabId);
     clearSessionSnapshots(tabUuid);

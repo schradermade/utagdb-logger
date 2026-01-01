@@ -239,6 +239,32 @@
         border: 1px solid #2a2a2a;
         border-radius: 8px;
       }
+      .iq-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .iq-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .iq-includes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 12px;
+        font-size: 12px;
+        color: #cfcfcf;
+      }
+      .iq-preview {
+        background: #1b1b1b;
+        border: 1px solid #2b2b2b;
+        border-radius: 6px;
+        padding: 10px;
+        max-height: calc(100vh - 340px);
+        overflow: auto;
+      }
       .storage-group {
         margin-top: 12px;
       }
@@ -561,6 +587,9 @@
             <button class="feature-card" type="button" data-feature="payloads" aria-selected="false">
               <span class="feature-title">Payload Lab</span>
             </button>
+            <button class="feature-card" type="button" data-feature="iq" aria-selected="false">
+              <span class="feature-title">iQ Profile</span>
+            </button>
             <button class="feature-card" type="button" data-feature="consent" aria-selected="false">
               <span class="feature-title">Consent Monitor</span>
             </button>
@@ -630,6 +659,63 @@
 
       <section id="feature-payloads" class="feature-section" role="tabpanel">
         <div class="status">Payload Lab is coming soon.</div>
+      </section>
+
+      <section id="feature-iq" class="feature-section" role="tabpanel">
+        <div class="iq-form">
+          <label class="field">
+            <span>Account</span>
+            <input id="iq-account" type="text" placeholder="success-nathan-schrader" />
+          </label>
+          <label class="field">
+            <span>Profile</span>
+            <input id="iq-profile" type="text" placeholder="main" />
+          </label>
+          <label class="field">
+            <span>Username</span>
+            <input id="iq-username" type="text" placeholder="user@example.com" />
+          </label>
+          <label class="field">
+            <span>API Key</span>
+            <input id="iq-key" type="password" placeholder="API key" />
+          </label>
+          <div class="iq-actions">
+            <button id="iq-auth" class="storage-button" type="button">Get Token</button>
+          </div>
+          <label class="field">
+            <span>Token</span>
+            <input id="iq-token" type="password" placeholder="Paste token to reuse" />
+          </label>
+          <label class="field">
+            <span>Host</span>
+            <input id="iq-host" type="text" placeholder="us-west-2-platform.tealiumapis.com" />
+          </label>
+          <div class="iq-includes">
+            <label class="export-option"><input type="checkbox" class="iq-include" value="loadRules" checked /> loadRules</label>
+            <label class="export-option"><input type="checkbox" class="iq-include" value="tags" checked /> tags</label>
+            <label class="export-option"><input type="checkbox" class="iq-include" value="tags.templateList" /> tags.templateList</label>
+            <label class="export-option"><input type="checkbox" class="iq-include" value="tags.template" /> tags.template</label>
+            <label class="export-option"><input type="checkbox" class="iq-include" value="extensions" checked /> extensions</label>
+            <label class="export-option"><input type="checkbox" class="iq-include" value="variables" checked /> variables</label>
+            <label class="export-option"><input type="checkbox" class="iq-include" value="events" /> events</label>
+            <label class="export-option"><input type="checkbox" class="iq-include" value="versionIDs" /> versionIDs</label>
+          </div>
+          <label class="field">
+            <span>Custom includes (comma separated)</span>
+            <input id="iq-includes-custom" type="text" placeholder="loadRules, tags.templateList" />
+          </label>
+          <div class="iq-actions">
+            <button id="iq-fetch" class="storage-button" type="button">Fetch iQ Profile</button>
+          </div>
+        </div>
+        <div id="iq-status" class="status">No profile fetched yet.</div>
+        <div class="storage-group">
+          <div class="storage-header">
+            <span>Profile Preview</span>
+            <span id="iq-preview-count">0</span>
+          </div>
+          <pre id="iq-preview" class="storage-value iq-preview"></pre>
+        </div>
       </section>
 
       <section id="feature-consent" class="feature-section" role="tabpanel">

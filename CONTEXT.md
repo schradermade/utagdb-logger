@@ -49,6 +49,7 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
   - `consent_monitor` (latest per-tab consent snapshot)
 - Export supports toggles and redaction options for URLs and signal values.
 - Preview is pretty-printed and line-numbered, but the exported JSON remains raw (no data shape changes).
+- iQ Profile tab authenticates via `POST /v3/auth/accounts/<account>/profiles/<profile>` and fetches profile JSON from `us-west-2-platform` with `includes` parameters.
 
 ## UI Summary
 - Fixed header with Tools/Export tabs and robot icon.
@@ -57,6 +58,10 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
   - Pretty-printed JSON
   - Line numbers per log (not per line)
   - Numbers and separators are non-selectable for clean copy/paste
+- iQ Profile view:
+  - Token retrieval (username + API key)
+  - Includes toggles + custom includes
+  - Pretty preview with non-selectable line numbers
 - Consent view:
   - Required / Present / GPC / State
   - Canonical category labels (e.g., `C0001: Strictly Necessary`)
@@ -68,6 +73,7 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
 - `utagdbSession:<sessionId>`
 - `consentSnapshot:tab:<uuid>`
 - `storageSnapshot:tab:<uuid>`
+- `iqProfileSnapshot:tab:<uuid>`
 
 ## Configuration
 - `http://localhost:3005` is used by the optional `send_utag` workflow.
@@ -82,4 +88,3 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
 1. Load unpacked extension from this folder in `chrome://extensions`.
 2. Open the side panel, start recording, and inspect logs/consent.
 3. Use Export to generate a case file.
-
