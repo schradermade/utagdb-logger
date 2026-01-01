@@ -251,7 +251,15 @@ const exportRefreshButton = document.getElementById('export-refresh');
 const exportDownloadButton = document.getElementById('export-download');
 const exportStatus = document.getElementById('export-status');
 const exportPreview = document.getElementById('export-preview');
+const exportIncludeLogger = document.getElementById('export-include-logger');
+const exportIncludeConsent = document.getElementById('export-include-consent');
+const exportRedactUrls = document.getElementById('export-redact-urls');
+const exportRedactSignals = document.getElementById('export-redact-signals');
+const exportSize = document.getElementById('export-size');
 let exportCaseFileText = '';
+
+const getCurrentTabUuid = () =>
+  currentTabUuid || (currentTabId ? tabIdToUuid.get(currentTabId) : null);
 
 const setConsentPill = (el, value, tone) => {
   if (!el) {
@@ -299,6 +307,11 @@ const buildCaseFile = (callback) => {
   const manifest = chrome.runtime && chrome.runtime.getManifest
     ? chrome.runtime.getManifest()
     : {};
+  const redactUrls = Boolean(exportRedactUrls && exportRedactUrls.checked);
+  const redactSignals = Boolean(exportRedactSignals && exportRedactSignals.checked);
+  const includeLogger = !exportIncludeLogger || exportIncludeLogger.checked;
+  const includeConsent = !exportIncludeConsent || exportIncludeConsent.checked;
+  const currentUuid = getCurrentTabUuid();
   chrome.storage.local.get(null, (items) => {
     if (chrome.runtime.lastError) {
       callback(null, chrome.runtime.lastError.message);
@@ -308,6 +321,20 @@ const buildCaseFile = (callback) => {
       .filter((key) => key.startsWith('consentSnapshot:tab:'))
       .map((key) => items[key])
       .filter(Boolean)
+      .filter((snapshot) => (currentUuid ? snapshot.tab_uuid === currentUuid : true))
+      .map((snapshot) => {
+        const next = { ...snapshot };
+        if (redactUrls) {
+          delete next.url;
+        }
+        if (redactSignals && Array.isArray(next.signals)) {
+          next.signals = next.signals.map((signal) => ({
+            label: signal.label,
+            value: '[redacted]',
+          }));
+        }
+        return next;
+      })
       .sort((left, right) => {
         const leftTime = left && left.captured_at ? left.captured_at : '';
         const rightTime = right && right.captured_at ? right.captured_at : '';
@@ -321,17 +348,21 @@ const buildCaseFile = (callback) => {
           name: manifest.name || 'Tealium Debug Logger',
           version: manifest.version || 'unknown',
         },
-        utagdb_logger: {
-          enabled: Boolean(logger.enabled),
-          session_id: logger.sessionId || null,
-          session_name: logger.filename || null,
-          log_count: Number.isFinite(logger.logCount) ? logger.logCount : null,
-          endpoint: 'http://localhost:3005',
-        },
-        consent_monitor: {
-          snapshot_count: consentSnapshots.length,
-          snapshots: consentSnapshots,
-        },
+        utagdb_logger: includeLogger
+          ? {
+              enabled: Boolean(logger.enabled),
+              session_id: logger.sessionId || null,
+              session_name: logger.filename || null,
+              log_count: Number.isFinite(logger.logCount) ? logger.logCount : null,
+              endpoint: 'http://localhost:3005',
+            }
+          : null,
+        consent_monitor: includeConsent
+          ? {
+              snapshot_count: consentSnapshots.length,
+              snapshots: consentSnapshots,
+            }
+          : null,
       };
       callback(caseFile, null);
     });
@@ -348,11 +379,18 @@ function refreshExportPreview() {
       exportStatus.textContent = error;
       exportPreview.textContent = '';
       exportCaseFileText = '';
+      if (exportSize) {
+        exportSize.textContent = '';
+      }
       return;
     }
     exportCaseFileText = JSON.stringify(caseFile, null, 2);
     exportPreview.textContent = exportCaseFileText;
     exportStatus.textContent = `Preview updated at ${new Date().toLocaleTimeString()}`;
+    if (exportSize) {
+      const bytes = new TextEncoder().encode(exportCaseFileText).length;
+      exportSize.textContent = `Estimated size: ${bytes} bytes`;
+    }
   });
 }
 
@@ -381,6 +419,18 @@ if (exportRefreshButton) {
 }
 if (exportDownloadButton) {
   exportDownloadButton.addEventListener('click', exportCaseFile);
+}
+if (exportRedactUrls) {
+  exportRedactUrls.addEventListener('change', refreshExportPreview);
+}
+if (exportRedactSignals) {
+  exportRedactSignals.addEventListener('change', refreshExportPreview);
+}
+if (exportIncludeLogger) {
+  exportIncludeLogger.addEventListener('change', refreshExportPreview);
+}
+if (exportIncludeConsent) {
+  exportIncludeConsent.addEventListener('change', refreshExportPreview);
 }
 
 const normalizeConsentCategory = (category) => {

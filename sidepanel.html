@@ -207,6 +207,25 @@
         max-height: 240px;
         overflow: auto;
       }
+      .export-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        align-items: center;
+        margin-bottom: 10px;
+        font-size: 12px;
+        color: #cfcfcf;
+      }
+      .export-option {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .export-size {
+        font-size: 11px;
+        color: #b6b6b6;
+        margin-top: 8px;
+      }
       #consent-signal-list .storage-value {
         background: #1c1c1c;
         border: 1px solid #2a2a2a;
@@ -605,6 +624,24 @@
           <button id="export-refresh" class="storage-button" type="button">Refresh Preview</button>
           <button id="export-download" class="storage-button" type="button">Export Case File</button>
         </div>
+        <div class="export-options">
+          <label class="export-option">
+            <input id="export-include-logger" type="checkbox" checked />
+            <span>Include utag.DB</span>
+          </label>
+          <label class="export-option">
+            <input id="export-include-consent" type="checkbox" checked />
+            <span>Include Consent</span>
+          </label>
+          <label class="export-option">
+            <input id="export-redact-urls" type="checkbox" />
+            <span>Redact URLs</span>
+          </label>
+          <label class="export-option">
+            <input id="export-redact-signals" type="checkbox" />
+            <span>Redact signal values</span>
+          </label>
+        </div>
         <div id="export-status" class="status">No preview yet.</div>
         <div class="storage-group">
           <div class="storage-header">
@@ -612,6 +649,7 @@
           </div>
           <pre id="export-preview" class="storage-value export-preview"></pre>
         </div>
+        <div id="export-size" class="export-size"></div>
       </div>
     </div>
     <script src="sidepanel.js"></script>
