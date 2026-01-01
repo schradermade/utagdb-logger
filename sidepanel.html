@@ -233,6 +233,14 @@
         max-height: calc(100vh - 340px);
         overflow: auto;
       }
+      .logger-preview {
+        background: #1b1b1b;
+        border: 1px solid #2b2b2b;
+        border-radius: 6px;
+        padding: 10px;
+        max-height: 220px;
+        overflow: auto;
+      }
       .export-options {
         display: flex;
         flex-wrap: wrap;
@@ -539,6 +547,13 @@
           <div id="completed-count" class="saving-value"></div>
         </div>
         <div id="status" class="status"></div>
+        <div class="storage-group">
+          <div class="storage-header">
+            <span>Logs Preview</span>
+            <span id="logger-preview-count">0</span>
+          </div>
+          <pre id="logger-preview" class="storage-value logger-preview"></pre>
+        </div>
       </section>
 
       <section id="feature-session" class="feature-section" role="tabpanel">

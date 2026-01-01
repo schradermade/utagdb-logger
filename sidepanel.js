@@ -251,12 +251,15 @@ const exportRefreshButton = document.getElementById('export-refresh');
 const exportDownloadButton = document.getElementById('export-download');
 const exportStatus = document.getElementById('export-status');
 const exportPreview = document.getElementById('export-preview');
+const loggerPreview = document.getElementById('logger-preview');
+const loggerPreviewCount = document.getElementById('logger-preview-count');
 const exportIncludeLogger = document.getElementById('export-include-logger');
 const exportIncludeConsent = document.getElementById('export-include-consent');
 const exportRedactUrls = document.getElementById('export-redact-urls');
 const exportRedactSignals = document.getElementById('export-redact-signals');
 const exportSize = document.getElementById('export-size');
 let exportCaseFileText = '';
+const LOGGER_PREVIEW_LIMIT = 120;
 
 const getCurrentTabUuid = () =>
   currentTabUuid || (currentTabId ? tabIdToUuid.get(currentTabId) : null);
@@ -300,6 +303,94 @@ const normalizeValue = (value) => {
 const formatCaseFileName = (timestamp) => {
   const safeStamp = timestamp.replace(/[:.]/g, '-');
   return `case-file-${safeStamp}.json`;
+};
+
+const stringifyLogArg = (value) => {
+  if (value == null) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch (err) {
+    return String(value);
+  }
+};
+
+const formatLoggerEntry = (entry) => {
+  if (!entry || typeof entry !== 'object') {
+    return String(entry || '');
+  }
+  if (entry.event) {
+    return String(entry.event);
+  }
+  const sequence =
+    entry.console && entry.console.sequence != null
+      ? entry.console.sequence
+      : entry.console && entry.console.db_index != null
+        ? entry.console.db_index
+        : null;
+  const args = entry.console && Array.isArray(entry.console.args)
+    ? entry.console.args.map(stringifyLogArg).filter(Boolean)
+    : [];
+  const base = args.length ? args.join(' ') : stringifyLogArg(entry.console || entry);
+  return sequence != null ? `#${sequence} ${base}` : base;
+};
+
+const refreshLoggerPreview = () => {
+  if (!loggerPreview) {
+    return;
+  }
+  chrome.runtime.sendMessage({ type: 'get_enabled' }, (response) => {
+    if (chrome.runtime.lastError) {
+      loggerPreview.textContent = chrome.runtime.lastError.message;
+      if (loggerPreviewCount) {
+        loggerPreviewCount.textContent = '0';
+      }
+      return;
+    }
+    const sessionId =
+      (response && response.sessionId) ||
+      (response && response.lastSessionId) ||
+      null;
+    if (!sessionId) {
+      loggerPreview.textContent = 'No session yet.';
+      if (loggerPreviewCount) {
+        loggerPreviewCount.textContent = '0';
+      }
+      return;
+    }
+    const logsKey = `utagdbLogs:session:${sessionId}`;
+    chrome.storage.local.get([logsKey], (items) => {
+      if (chrome.runtime.lastError) {
+        loggerPreview.textContent = chrome.runtime.lastError.message;
+        if (loggerPreviewCount) {
+          loggerPreviewCount.textContent = '0';
+        }
+        return;
+      }
+      const logs = Array.isArray(items[logsKey]) ? items[logsKey] : [];
+      if (loggerPreviewCount) {
+        loggerPreviewCount.textContent = String(logs.length);
+      }
+      if (logs.length === 0) {
+        loggerPreview.textContent = 'No logs yet.';
+        return;
+      }
+      const startIndex = Math.max(0, logs.length - LOGGER_PREVIEW_LIMIT);
+      const slice = logs.slice(startIndex);
+      const pad = String(logs.length).length;
+      const numbered = slice
+        .map((entry, index) => {
+          const lineNumber = String(startIndex + index + 1).padStart(pad, ' ');
+          return `${lineNumber} | ${formatLoggerEntry(entry)}`;
+        })
+        .join('\n');
+      loggerPreview.textContent = numbered;
+    });
+  });
 };
 
 const buildCaseFile = (callback) => {
@@ -456,6 +547,27 @@ if (exportIncludeLogger) {
 }
 if (exportIncludeConsent) {
   exportIncludeConsent.addEventListener('change', refreshExportPreview);
+}
+
+refreshLoggerPreview();
+
+if (chrome && chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local') {
+      return;
+    }
+    const keys = Object.keys(changes || {});
+    const hasLoggerUpdate = keys.some(
+      (key) =>
+        key === 'sessionLogCount' ||
+        key === 'sessionId' ||
+        key === 'lastSessionId' ||
+        key.startsWith('utagdbLogs:session:')
+    );
+    if (hasLoggerUpdate) {
+      refreshLoggerPreview();
+    }
+  });
 }
 
 const normalizeConsentCategory = (category) => {
