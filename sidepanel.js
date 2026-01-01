@@ -1,4 +1,7 @@
 const featureButtons = Array.from(document.querySelectorAll('[data-feature]'));
+const topTabButtons = Array.from(document.querySelectorAll('[data-top-tab]'));
+const toolsView = document.getElementById('tools-view');
+const exportView = document.getElementById('export-view');
 const featureSections = new Map([
   ['logger', document.getElementById('feature-logger')],
   ['session', document.getElementById('feature-session')],
@@ -9,7 +12,6 @@ const featureSections = new Map([
   ['events', document.getElementById('feature-events')],
   ['storage', document.getElementById('feature-storage')],
   ['qa', document.getElementById('feature-qa')],
-  ['export', document.getElementById('feature-export')],
 ]);
 
 const setActiveFeature = (feature) => {
@@ -34,6 +36,33 @@ const setActiveFeature = (feature) => {
   }
 };
 
+const setActiveTopTab = (tab) => {
+  topTabButtons.forEach((button) => {
+    const isActive = button.dataset.topTab === tab;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-selected', String(isActive));
+  });
+  if (toolsView) {
+    toolsView.style.display = tab === 'tools' ? 'block' : 'none';
+  }
+  if (exportView) {
+    exportView.classList.toggle('active', tab === 'export');
+    exportView.setAttribute('aria-hidden', tab === 'export' ? 'false' : 'true');
+  }
+  if (tab === 'export') {
+    stopConsentPolling();
+    refreshExportPreview();
+  } else {
+    const activeButton = featureButtons.find((button) =>
+      button.classList.contains('active')
+    );
+    if (activeButton && activeButton.dataset.feature === 'consent') {
+      fetchConsentSnapshot({ silent: true, forceRender: true });
+      startConsentPolling();
+    }
+  }
+};
+
 featureButtons.forEach((button) => {
   if (button.disabled) {
     return;
@@ -42,6 +71,17 @@ featureButtons.forEach((button) => {
     setActiveFeature(button.dataset.feature);
   });
 });
+
+topTabButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    setActiveTopTab(button.dataset.topTab);
+  });
+});
+
+const initialTopTab = topTabButtons.find((button) =>
+  button.classList.contains('active')
+);
+setActiveTopTab(initialTopTab ? initialTopTab.dataset.topTab : 'tools');
 
 const storageSnapshotButton = document.getElementById('storage-snapshot');
 const storageSearchInput = document.getElementById('storage-search');
@@ -207,6 +247,11 @@ const consentMeta = document.getElementById('consent-meta');
 const consentCategories = document.getElementById('consent-categories');
 const consentSignalList = document.getElementById('consent-signal-list');
 const consentSignalCount = document.getElementById('consent-signal-count');
+const exportRefreshButton = document.getElementById('export-refresh');
+const exportDownloadButton = document.getElementById('export-download');
+const exportStatus = document.getElementById('export-status');
+const exportPreview = document.getElementById('export-preview');
+let exportCaseFileText = '';
 
 const setConsentPill = (el, value, tone) => {
   if (!el) {
@@ -243,6 +288,100 @@ const normalizeValue = (value) => {
     return value;
   }
 };
+
+const formatCaseFileName = (timestamp) => {
+  const safeStamp = timestamp.replace(/[:.]/g, '-');
+  return `case-file-${safeStamp}.json`;
+};
+
+const buildCaseFile = (callback) => {
+  const generatedAt = new Date().toISOString();
+  const manifest = chrome.runtime && chrome.runtime.getManifest
+    ? chrome.runtime.getManifest()
+    : {};
+  chrome.storage.local.get(null, (items) => {
+    if (chrome.runtime.lastError) {
+      callback(null, chrome.runtime.lastError.message);
+      return;
+    }
+    const consentSnapshots = Object.keys(items || {})
+      .filter((key) => key.startsWith('consentSnapshot:tab:'))
+      .map((key) => items[key])
+      .filter(Boolean)
+      .sort((left, right) => {
+        const leftTime = left && left.captured_at ? left.captured_at : '';
+        const rightTime = right && right.captured_at ? right.captured_at : '';
+        return leftTime.localeCompare(rightTime);
+      });
+    chrome.runtime.sendMessage({ type: 'get_enabled' }, (response) => {
+      const logger = response || {};
+      const caseFile = {
+        generated_at: generatedAt,
+        app: {
+          name: manifest.name || 'Tealium Debug Logger',
+          version: manifest.version || 'unknown',
+        },
+        utagdb_logger: {
+          enabled: Boolean(logger.enabled),
+          session_id: logger.sessionId || null,
+          session_name: logger.filename || null,
+          log_count: Number.isFinite(logger.logCount) ? logger.logCount : null,
+          endpoint: 'http://localhost:3005',
+        },
+        consent_monitor: {
+          snapshot_count: consentSnapshots.length,
+          snapshots: consentSnapshots,
+        },
+      };
+      callback(caseFile, null);
+    });
+  });
+};
+
+function refreshExportPreview() {
+  if (!exportStatus || !exportPreview) {
+    return;
+  }
+  exportStatus.textContent = 'Building case file...';
+  buildCaseFile((caseFile, error) => {
+    if (error) {
+      exportStatus.textContent = error;
+      exportPreview.textContent = '';
+      exportCaseFileText = '';
+      return;
+    }
+    exportCaseFileText = JSON.stringify(caseFile, null, 2);
+    exportPreview.textContent = exportCaseFileText;
+    exportStatus.textContent = `Preview updated at ${new Date().toLocaleTimeString()}`;
+  });
+}
+
+const exportCaseFile = () => {
+  if (!exportCaseFileText) {
+    refreshExportPreview();
+    return;
+  }
+  const timestamp = new Date().toISOString();
+  const blob = new Blob([exportCaseFileText], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  chrome.downloads.download(
+    {
+      url,
+      filename: formatCaseFileName(timestamp),
+      saveAs: true,
+    },
+    () => {
+      URL.revokeObjectURL(url);
+    }
+  );
+};
+
+if (exportRefreshButton) {
+  exportRefreshButton.addEventListener('click', refreshExportPreview);
+}
+if (exportDownloadButton) {
+  exportDownloadButton.addEventListener('click', exportCaseFile);
+}
 
 const normalizeConsentCategory = (category) => {
   if (!category) {
@@ -537,7 +676,7 @@ const applyConsentSnapshot = (payload) => {
   renderConsentSignals(payload.signals || []);
 };
 
-const fetchConsentSnapshot = (options = {}) => {
+function fetchConsentSnapshot(options = {}) {
   if (!consentStatus) {
     return;
   }
@@ -606,7 +745,7 @@ const fetchConsentSnapshot = (options = {}) => {
       }
     });
   });
-};
+}
 
 if (consentRefreshButton) {
   consentRefreshButton.addEventListener('click', fetchConsentSnapshot);

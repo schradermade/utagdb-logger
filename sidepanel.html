@@ -21,6 +21,30 @@
         padding: 8px 16px;
         margin: 0;
       }
+      .top-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .top-tab {
+        border: 1px solid #2a2a2a;
+        background: #171717;
+        color: #d9d9d9;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .top-tab.active {
+        border-color: #3b7a4d;
+        background: #0f1712;
+        color: #e3f7ea;
+      }
       .content {
         padding: 0 16px 16px;
       }
@@ -174,6 +198,14 @@
         white-space: pre-wrap;
         word-break: break-word;
         font-family: SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      }
+      .export-preview {
+        background: #1b1b1b;
+        border: 1px solid #2b2b2b;
+        border-radius: 6px;
+        padding: 10px;
+        max-height: 240px;
+        overflow: auto;
       }
       #consent-signal-list .storage-value {
         background: #1c1c1c;
@@ -385,46 +417,50 @@
   </head>
   <body>
     <div class="header">
-      <div class="title">
-        <span class="title-icon" aria-hidden="true">🛠️</span>
-        <span>Tools</span>
+      <div class="top-tabs" role="tablist" aria-label="Primary">
+        <button class="top-tab active" type="button" data-top-tab="tools" aria-selected="true">
+          <span class="title-icon" aria-hidden="true">🛠️</span>
+          <span>Tools</span>
+        </button>
+        <button class="top-tab" type="button" data-top-tab="export" aria-selected="false">
+          <span class="title-icon" aria-hidden="true">📤</span>
+          <span>Export</span>
+        </button>
       </div>
     </div>
     <div class="content">
-      <div class="feature-shell">
-        <div class="feature-nav" role="tablist" aria-label="Features">
-          <button class="feature-card active" type="button" data-feature="logger" aria-selected="true">
-            <span class="feature-title">utag.db Logger</span>
-          </button>
-          <button class="feature-card" type="button" data-feature="session" aria-selected="false">
-            <span class="feature-title">Session Viewer</span>
-          </button>
-          <button class="feature-card" type="button" data-feature="rules" aria-selected="false">
-            <span class="feature-title">Load Rules</span>
-          </button>
-          <button class="feature-card" type="button" data-feature="payloads" aria-selected="false">
-            <span class="feature-title">Payload Lab</span>
-          </button>
-          <button class="feature-card" type="button" data-feature="consent" aria-selected="false">
-            <span class="feature-title">Consent Monitor</span>
-          </button>
-          <button class="feature-card" type="button" data-feature="network" aria-selected="false">
-            <span class="feature-title">Network Watch</span>
-          </button>
-          <button class="feature-card" type="button" data-feature="events" aria-selected="false">
-            <span class="feature-title">Event Stream</span>
-          </button>
-          <button class="feature-card" type="button" data-feature="storage" aria-selected="false">
-            <span class="feature-title">Storage Map</span>
-          </button>
-          <button class="feature-card" type="button" data-feature="qa" aria-selected="false">
-            <span class="feature-title">QA Checklist</span>
-          </button>
-          <button class="feature-card" type="button" data-feature="export" aria-selected="false">
-            <span class="feature-title">Export Hub</span>
-          </button>
+      <div id="tools-view">
+        <div class="feature-shell">
+          <div class="feature-nav" role="tablist" aria-label="Features">
+            <button class="feature-card active" type="button" data-feature="logger" aria-selected="true">
+              <span class="feature-title">utag.db Logger</span>
+            </button>
+            <button class="feature-card" type="button" data-feature="session" aria-selected="false">
+              <span class="feature-title">Session Viewer</span>
+            </button>
+            <button class="feature-card" type="button" data-feature="rules" aria-selected="false">
+              <span class="feature-title">Load Rules</span>
+            </button>
+            <button class="feature-card" type="button" data-feature="payloads" aria-selected="false">
+              <span class="feature-title">Payload Lab</span>
+            </button>
+            <button class="feature-card" type="button" data-feature="consent" aria-selected="false">
+              <span class="feature-title">Consent Monitor</span>
+            </button>
+            <button class="feature-card" type="button" data-feature="network" aria-selected="false">
+              <span class="feature-title">Network Watch</span>
+            </button>
+            <button class="feature-card" type="button" data-feature="events" aria-selected="false">
+              <span class="feature-title">Event Stream</span>
+            </button>
+            <button class="feature-card" type="button" data-feature="storage" aria-selected="false">
+              <span class="feature-title">Storage Map</span>
+            </button>
+            <button class="feature-card" type="button" data-feature="qa" aria-selected="false">
+              <span class="feature-title">QA Checklist</span>
+            </button>
+          </div>
         </div>
-      </div>
 
       <section id="feature-logger" class="feature-section active" role="tabpanel">
         <label id="filename-field" class="field">
@@ -562,9 +598,21 @@
         <div class="status">QA Checklist is coming soon.</div>
       </section>
 
-      <section id="feature-export" class="feature-section" role="tabpanel">
-        <div class="status">Export Hub is coming soon.</div>
-      </section>
+      </div>
+
+      <div id="export-view" class="feature-section" role="tabpanel" aria-hidden="true">
+        <div class="storage-controls">
+          <button id="export-refresh" class="storage-button" type="button">Refresh Preview</button>
+          <button id="export-download" class="storage-button" type="button">Export Case File</button>
+        </div>
+        <div id="export-status" class="status">No preview yet.</div>
+        <div class="storage-group">
+          <div class="storage-header">
+            <span>Case File Preview</span>
+          </div>
+          <pre id="export-preview" class="storage-value export-preview"></pre>
+        </div>
+      </div>
     </div>
     <script src="sidepanel.js"></script>
     <script src="popup.js"></script>
