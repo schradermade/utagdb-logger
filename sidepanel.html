@@ -238,7 +238,7 @@
         border: 1px solid #2b2b2b;
         border-radius: 6px;
         padding: 10px;
-        max-height: 220px;
+        max-height: clamp(220px, calc(100vh - 460px), 480px);
         overflow: auto;
       }
       .export-options {
