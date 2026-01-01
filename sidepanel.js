@@ -303,6 +303,7 @@ const iqFetchButton = document.getElementById('iq-fetch');
 const iqStatus = document.getElementById('iq-status');
 const iqPreview = document.getElementById('iq-preview');
 const iqPreviewCount = document.getElementById('iq-preview-count');
+const iqCopyButton = document.getElementById('iq-copy');
 const iqIncludeInputs = Array.from(document.querySelectorAll('.iq-include'));
 const iqIncludesCustom = document.getElementById('iq-includes-custom');
 const exportIncludeLogger = document.getElementById('export-include-logger');
@@ -590,6 +591,7 @@ const applyIqSnapshot = (payload) => {
   } catch (err) {
     previewText = stringifyLogArg(payload.response || {});
   }
+  iqPreviewRawText = previewText;
   const lineCount = renderPreviewLines(iqPreview, previewText);
   if (iqPreviewCount) {
     iqPreviewCount.textContent = String(lineCount || 0);
@@ -920,6 +922,33 @@ if (iqAuthButton) {
 }
 if (iqFetchButton) {
   iqFetchButton.addEventListener('click', fetchIqProfile);
+}
+if (iqCopyButton) {
+  iqCopyButton.addEventListener('click', () => {
+    if (!iqPreviewRawText) {
+      setIqStatus('No preview to copy yet.', true);
+      return;
+    }
+    navigator.clipboard
+      .writeText(iqPreviewRawText)
+      .then(() => {
+        setIqStatus('Preview copied to clipboard.', false);
+        iqCopyButton.classList.add('copied');
+        const label = iqCopyButton.querySelector('.iq-copy-text');
+        if (label) {
+          label.textContent = 'Copied';
+        }
+        window.setTimeout(() => {
+          iqCopyButton.classList.remove('copied');
+          if (label) {
+            label.textContent = 'Copy';
+          }
+        }, 1400);
+      })
+      .catch(() => {
+        setIqStatus('Clipboard copy failed.', true);
+      });
+  });
 }
 if (iqTokenInput) {
   iqTokenInput.addEventListener('input', (event) => {
@@ -1489,3 +1518,4 @@ if (chrome.tabs && chrome.tabs.onRemoved) {
     clearSessionSnapshots(tabUuid);
   });
 }
+let iqPreviewRawText = '';

@@ -359,12 +359,77 @@
         color: #cfcfcf;
       }
       .iq-preview {
-        background: #1b1b1b;
-        border: 1px solid #2b2b2b;
-        border-radius: 6px;
-        padding: 10px;
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
         max-height: calc(100vh - 340px);
         overflow: auto;
+      }
+      .iq-preview-shell {
+        border: 1px solid #2b2b2b;
+        background: #1b1b1b;
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .iq-preview-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .iq-preview-label {
+        font-size: 12px;
+        color: #cfcfcf;
+        text-transform: lowercase;
+        letter-spacing: 0.3px;
+      }
+      .iq-copy {
+        background: transparent;
+        border: 0;
+        color: #e6e6e6;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 4px 6px;
+        border-radius: 8px;
+      }
+      .iq-copy:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .iq-copy .iq-check {
+        display: none;
+        width: 14px;
+        height: 10px;
+        align-items: center;
+        justify-content: center;
+        color: #e6e6e6;
+        line-height: 1;
+      }
+      .iq-copy .iq-check svg {
+        width: 14px;
+        height: 10px;
+        display: block;
+      }
+      .iq-copy.copied .iq-copy-icon {
+        display: none;
+      }
+      .iq-copy.copied .iq-check {
+        display: inline-flex;
+      }
+      .iq-copy-icon {
+        width: 16px;
+        height: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .iq-copy-icon svg {
+        width: 16px;
+        height: 16px;
+        display: block;
       }
       .storage-group {
         margin-top: 12px;
@@ -869,7 +934,30 @@
             <span>Profile Preview</span>
             <span id="iq-preview-count">0</span>
           </div>
-          <pre id="iq-preview" class="storage-value iq-preview"></pre>
+          <div class="iq-preview-shell">
+            <div class="iq-preview-toolbar">
+              <span class="iq-preview-label">json</span>
+              <button id="iq-copy" class="iq-copy" type="button">
+                <span class="iq-copy-icon" aria-hidden="true">
+                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                    <mask id="copy-cutout" maskUnits="userSpaceOnUse">
+                      <rect x="0" y="0" width="20" height="20" fill="white"></rect>
+                      <rect x="6" y="6" width="11" height="11" rx="2.5" fill="black"></rect>
+                    </mask>
+                    <rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" mask="url(#copy-cutout)"></rect>
+                    <rect x="6.5" y="6.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></rect>
+                  </svg>
+                </span>
+                <span class="iq-check" aria-hidden="true">
+                  <svg viewBox="0 0 12 10" aria-hidden="true" focusable="false">
+                    <path d="M1 5.5 L4.5 9 L11 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"></path>
+                  </svg>
+                </span>
+                <span class="iq-copy-text">Copy</span>
+              </button>
+            </div>
+            <pre id="iq-preview" class="storage-value iq-preview"></pre>
+          </div>
         </div>
       </section>
 
