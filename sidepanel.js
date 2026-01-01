@@ -325,12 +325,12 @@ const buildCaseFile = (callback) => {
       .map((snapshot) => {
         const next = { ...snapshot };
         if (redactUrls) {
-          delete next.url;
+          next.url = '[redacted]';
         }
         if (redactSignals && Array.isArray(next.signals)) {
           next.signals = next.signals.map((signal) => ({
             label: signal.label,
-            value: '[redacted]',
+            value: 'redacted',
           }));
         }
         return next;
