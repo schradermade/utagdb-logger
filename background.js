@@ -232,6 +232,71 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === 'get_tab_uuid') {
+    const targetTabId = Number.isInteger(message.tabId) ? message.tabId : null;
+    const withTab = (tab) => {
+      if (!tab || !tab.id) {
+        sendResponse({ ok: false, error: 'No active tab' });
+        return;
+      }
+      if (!tab.url || !tab.url.startsWith('http')) {
+        sendResponse({ ok: false, error: 'Unsupported tab URL' });
+        return;
+      }
+      const requestUuid = () => {
+        chrome.tabs.sendMessage(tab.id, { type: 'get_tab_uuid' }, (response) => {
+          if (chrome.runtime.lastError) {
+            sendResponse({
+              ok: false,
+              error: chrome.runtime.lastError.message,
+            });
+            return;
+          }
+          sendResponse(response || { ok: false, error: 'No response' });
+        });
+      };
+
+      chrome.tabs.sendMessage(tab.id, { type: 'get_tab_uuid' }, () => {
+        if (chrome.runtime.lastError) {
+          chrome.scripting.executeScript(
+            { target: { tabId: tab.id }, files: ['content.js'] },
+            () => {
+              if (chrome.runtime.lastError) {
+                sendResponse({
+                  ok: false,
+                  error: chrome.runtime.lastError.message,
+                });
+                return;
+              }
+              requestUuid();
+            }
+          );
+          return;
+        }
+        requestUuid();
+      });
+    };
+
+    if (targetTabId) {
+      chrome.tabs.get(targetTabId, (tab) => {
+        if (chrome.runtime.lastError) {
+          sendResponse({
+            ok: false,
+            error: chrome.runtime.lastError.message,
+          });
+          return;
+        }
+        withTab(tab);
+      });
+      return true;
+    }
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      withTab(tabs[0]);
+    });
+    return true;
+  }
+
   if (message.type === 'get_consent_status') {
     const targetTabId = Number.isInteger(message.tabId) ? message.tabId : null;
     const withTab = (tab) => {

@@ -14,6 +14,28 @@ function readUtagData() {
   return null;
 }
 
+function getTabUuid() {
+  try {
+    const storage = window.sessionStorage;
+    if (!storage) {
+      return null;
+    }
+    const key = 'tealium_tab_uuid';
+    let value = storage.getItem(key);
+    if (!value) {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+        value = window.crypto.randomUUID();
+      } else {
+        value = `tab-${Math.random().toString(36).slice(2, 10)}-${Date.now()}`;
+      }
+      storage.setItem(key, value);
+    }
+    return value;
+  } catch (err) {
+    return null;
+  }
+}
+
 function collectStorageSnapshot() {
   const cookies = [];
   const rawCookies = document.cookie;
@@ -62,6 +84,7 @@ function collectStorageSnapshot() {
   return {
     url: location.href,
     captured_at: new Date().toISOString(),
+    tab_uuid: getTabUuid(),
     cookies,
     localStorage: localStorageItems,
     sessionStorage: sessionStorageItems,
@@ -932,6 +955,7 @@ async function collectConsentSnapshot() {
   return {
     url: location.href,
     captured_at: new Date().toISOString(),
+    tab_uuid: getTabUuid(),
     required: {
       value: requiredValue,
       tone: requiredValue === 'Yes' ? 'ok' : requiredValue === 'No' ? 'ok' : null,
@@ -1054,6 +1078,10 @@ try {
         } catch (err) {
           sendResponse({ ok: false, error: 'Failed to read storage.' });
         }
+        return;
+      }
+      if (message.type === 'get_tab_uuid') {
+        sendResponse({ ok: true, tab_uuid: getTabUuid(), url: location.href });
         return;
       }
       if (message.type === 'get_consent_status') {

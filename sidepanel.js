@@ -24,6 +24,14 @@ const setActiveFeature = (feature) => {
     }
     section.classList.toggle('active', key === feature);
   });
+  if (feature === 'consent' && typeof fetchConsentSnapshot === 'function') {
+    fetchConsentSnapshot();
+  }
+  if (feature === 'consent') {
+    startConsentPolling();
+  } else {
+    stopConsentPolling();
+  }
 };
 
 featureButtons.forEach((button) => {
@@ -50,13 +58,107 @@ const storageUtagCount = document.getElementById('storage-utag-count');
 let storageData = null;
 let storageFilter = '';
 let currentTabId = null;
+let currentTabUuid = null;
+const tabIdToUuid = new Map();
 const storageSnapshotsByTab = new Map();
 const consentSnapshotsByTab = new Map();
+const consentCoreSignaturesByTab = new Map();
+const storageLocal = chrome.storage && chrome.storage.local;
+let lastConsentRefreshAt = 0;
+const CONSENT_REFRESH_COOLDOWN_MS = 1000;
+let consentRefreshInFlight = false;
+let consentPollTimer = null;
+const CONSENT_POLL_INTERVAL_MS = 2000;
 
-const getActiveTabId = (callback) => {
+const isConsentActive = () => {
+  const consentButton = featureButtons.find(
+    (button) => button.dataset.feature === 'consent'
+  );
+  return Boolean(consentButton && consentButton.classList.contains('active'));
+};
+
+const startConsentPolling = () => {
+  if (consentPollTimer) {
+    return;
+  }
+  consentPollTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible' || !isConsentActive()) {
+      return;
+    }
+    fetchConsentSnapshot({ silent: true });
+  }, CONSENT_POLL_INTERVAL_MS);
+};
+
+const stopConsentPolling = () => {
+  if (!consentPollTimer) {
+    return;
+  }
+  clearInterval(consentPollTimer);
+  consentPollTimer = null;
+};
+
+const getSessionKeys = (tabUuid) => ({
+  storage: `storageSnapshot:tab:${tabUuid}`,
+  consent: `consentSnapshot:tab:${tabUuid}`,
+});
+
+const saveSessionSnapshot = (key, payload) => {
+  if (!storageLocal) {
+    return;
+  }
+  storageLocal.set({ [key]: payload });
+};
+
+const loadSessionSnapshot = (key, callback) => {
+  if (!storageLocal) {
+    callback(null);
+    return;
+  }
+  storageLocal.get([key], (items) => {
+    if (chrome.runtime.lastError) {
+      callback(null);
+      return;
+    }
+    callback(items ? items[key] : null);
+  });
+};
+
+const clearSessionSnapshots = (tabUuid) => {
+  if (!storageLocal || !tabUuid) {
+    return;
+  }
+  const keys = getSessionKeys(tabUuid);
+  storageLocal.remove([keys.storage, keys.consent]);
+};
+
+const getActiveTabInfo = (callback) => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const tabId = tabs && tabs[0] && tabs[0].id ? tabs[0].id : null;
-    callback(tabId);
+    const activeTab = tabs && tabs[0] ? tabs[0] : null;
+    const tabId = activeTab && activeTab.id ? activeTab.id : null;
+    const url = activeTab && typeof activeTab.url === 'string' ? activeTab.url : null;
+    callback({ tabId, url });
+  });
+};
+
+const resolveTabUuid = (tabId, callback) => {
+  if (!tabId) {
+    callback(null);
+    return;
+  }
+  if (tabIdToUuid.has(tabId)) {
+    callback(tabIdToUuid.get(tabId));
+    return;
+  }
+  chrome.runtime.sendMessage({ type: 'get_tab_uuid', tabId }, (response) => {
+    if (chrome.runtime.lastError || !response || !response.ok) {
+      callback(null);
+      return;
+    }
+    const tabUuid = response.tab_uuid || null;
+    if (tabUuid) {
+      tabIdToUuid.set(tabId, tabUuid);
+    }
+    callback(tabUuid);
   });
 };
 
@@ -141,6 +243,52 @@ const normalizeValue = (value) => {
   }
 };
 
+const normalizeConsentCategory = (category) => {
+  if (!category) {
+    return { name: '', accepted: false };
+  }
+  if (typeof category === 'string') {
+    return { name: category.trim(), accepted: false };
+  }
+  if (typeof category === 'object') {
+    return {
+      name: String(category.name || category.label || '').trim(),
+      accepted: Boolean(category.accepted),
+    };
+  }
+  return { name: String(category).trim(), accepted: false };
+};
+
+const buildConsentCoreSignature = (payload) => {
+  if (!payload) {
+    return '';
+  }
+  const normalizedCategories = Array.isArray(payload.categories)
+    ? payload.categories.map(normalizeConsentCategory)
+    : [];
+  normalizedCategories.sort((left, right) => {
+    const nameCompare = left.name.localeCompare(right.name);
+    if (nameCompare !== 0) {
+      return nameCompare;
+    }
+    if (left.accepted === right.accepted) {
+      return 0;
+    }
+    return left.accepted ? -1 : 1;
+  });
+  const signaturePayload = {
+    required: payload.required ? payload.required.value : '',
+    present: payload.present ? payload.present.value : '',
+    state: payload.state ? payload.state.value : '',
+    categories: normalizedCategories,
+  };
+  try {
+    return JSON.stringify(signaturePayload);
+  } catch (err) {
+    return String(signaturePayload);
+  }
+};
+
 const renderList = (container, entries, filter) => {
   if (!container) {
     return;
@@ -199,7 +347,7 @@ const collectStorage = () => {
     return;
   }
   storageStatus.textContent = 'Collecting snapshot...';
-  getActiveTabId((tabId) => {
+  getActiveTabInfo(({ tabId }) => {
     if (!tabId) {
       setStorageEmpty('No active tab.');
       return;
@@ -216,7 +364,10 @@ const collectStorage = () => {
         return;
       }
       const payload = response.data || {};
-      storageSnapshotsByTab.set(tabId, payload);
+      const tabUuid = payload.tab_uuid || tabIdToUuid.get(tabId) || `tab-${tabId}`;
+      tabIdToUuid.set(tabId, tabUuid);
+      storageSnapshotsByTab.set(tabUuid, payload);
+      saveSessionSnapshot(getSessionKeys(tabUuid).storage, payload);
       if (tabId === currentTabId) {
         setStorageSnapshot(payload);
       }
@@ -372,30 +523,64 @@ const applyConsentSnapshot = (payload) => {
   renderConsentSignals(payload.signals || []);
 };
 
-const fetchConsentSnapshot = () => {
+const fetchConsentSnapshot = (options = {}) => {
   if (!consentStatus) {
     return;
   }
-  consentStatus.textContent = 'Collecting snapshot...';
-  getActiveTabId((tabId) => {
+  const silent = Boolean(options.silent);
+  const now = Date.now();
+  if (consentRefreshInFlight) {
+    return;
+  }
+  if (now - lastConsentRefreshAt < CONSENT_REFRESH_COOLDOWN_MS) {
+    return;
+  }
+  consentRefreshInFlight = true;
+  if (!silent) {
+    consentStatus.textContent = 'Collecting snapshot...';
+  }
+  getActiveTabInfo(({ tabId }) => {
     if (!tabId) {
       setConsentEmpty('No active tab.');
+      consentRefreshInFlight = false;
       return;
     }
     chrome.runtime.sendMessage({ type: 'get_consent_status', tabId }, (response) => {
       if (chrome.runtime.lastError) {
-        consentStatus.textContent = chrome.runtime.lastError.message;
+        if (!silent) {
+          consentStatus.textContent = chrome.runtime.lastError.message;
+        }
+        consentRefreshInFlight = false;
         return;
       }
       if (!response || !response.ok) {
-        consentStatus.textContent = response && response.error
-          ? response.error
-          : 'Failed to collect consent.';
+        if (!silent) {
+          consentStatus.textContent = response && response.error
+            ? response.error
+            : 'Failed to collect consent.';
+        }
+        consentRefreshInFlight = false;
         return;
       }
-      consentStatus.textContent = '';
+      lastConsentRefreshAt = Date.now();
+      consentRefreshInFlight = false;
       const payload = response.data || {};
-      consentSnapshotsByTab.set(tabId, payload);
+      const tabUuid = payload.tab_uuid || tabIdToUuid.get(tabId) || `tab-${tabId}`;
+      tabIdToUuid.set(tabId, tabUuid);
+      const coreSignature = buildConsentCoreSignature(payload);
+      const prevCoreSignature = consentCoreSignaturesByTab.get(tabUuid);
+      if (silent && prevCoreSignature && coreSignature === prevCoreSignature) {
+        if (consentStatus && consentStatus.textContent) {
+          consentStatus.textContent = '';
+        }
+        consentSnapshotsByTab.set(tabUuid, payload);
+        saveSessionSnapshot(getSessionKeys(tabUuid).consent, payload);
+        return;
+      }
+      consentCoreSignaturesByTab.set(tabUuid, coreSignature);
+      consentStatus.textContent = '';
+      consentSnapshotsByTab.set(tabUuid, payload);
+      saveSessionSnapshot(getSessionKeys(tabUuid).consent, payload);
       if (tabId === currentTabId) {
         applyConsentSnapshot(payload);
       }
@@ -407,42 +592,133 @@ if (consentRefreshButton) {
   consentRefreshButton.addEventListener('click', fetchConsentSnapshot);
 }
 
-const applySnapshotsForTab = (tabId) => {
+const applySnapshotsForTab = ({ tabId, url }) => {
   currentTabId = tabId;
+  currentTabUuid = null;
   if (!tabId) {
     setStorageEmpty('No active tab.');
     setConsentEmpty('No active tab.');
     return;
   }
-  const storageSnapshot = storageSnapshotsByTab.get(tabId);
-  if (storageSnapshot) {
-    setStorageSnapshot(storageSnapshot);
-  } else {
-    setStorageEmpty('No snapshot yet for this tab.');
-  }
-  const consentSnapshot = consentSnapshotsByTab.get(tabId);
-  if (consentSnapshot) {
-    applyConsentSnapshot(consentSnapshot);
-  } else {
-    setConsentEmpty('No snapshot yet for this tab.');
-  }
+  resolveTabUuid(tabId, (tabUuid) => {
+    if (!tabUuid) {
+      setStorageEmpty('No snapshot yet for this tab.');
+      setConsentEmpty('No snapshot yet for this tab.');
+      return;
+    }
+    currentTabUuid = tabUuid;
+    const storageSnapshot = storageSnapshotsByTab.get(tabUuid);
+    if (storageSnapshot) {
+      setStorageSnapshot(storageSnapshot);
+    } else {
+      const storageKey = getSessionKeys(tabUuid).storage;
+      loadSessionSnapshot(storageKey, (payload) => {
+        if (payload) {
+          storageSnapshotsByTab.set(tabUuid, payload);
+          setStorageSnapshot(payload);
+        } else {
+          setStorageEmpty('No snapshot yet for this tab.');
+        }
+      });
+    }
+    const consentSnapshot = consentSnapshotsByTab.get(tabUuid);
+    if (consentSnapshot) {
+      applyConsentSnapshot(consentSnapshot);
+    } else {
+      const consentKey = getSessionKeys(tabUuid).consent;
+      loadSessionSnapshot(consentKey, (payload) => {
+        if (payload) {
+          consentSnapshotsByTab.set(tabUuid, payload);
+          applyConsentSnapshot(payload);
+        } else {
+          setConsentEmpty('No snapshot yet for this tab.');
+        }
+      });
+    }
+  });
 };
 
-getActiveTabId(applySnapshotsForTab);
+getActiveTabInfo((info) => {
+  applySnapshotsForTab(info);
+  if (isConsentActive()) {
+    fetchConsentSnapshot({ silent: true });
+    startConsentPolling();
+  } else {
+    stopConsentPolling();
+  }
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') {
+    stopConsentPolling();
+    return;
+  }
+  if (isConsentActive()) {
+    fetchConsentSnapshot({ silent: true });
+    startConsentPolling();
+  } else {
+    stopConsentPolling();
+  }
+});
 if (chrome.tabs && chrome.tabs.onActivated) {
   chrome.tabs.onActivated.addListener((info) => {
-    applySnapshotsForTab(info.tabId);
+    chrome.tabs.get(info.tabId, (tab) => {
+      if (chrome.runtime.lastError || !tab) {
+        applySnapshotsForTab({ tabId: info.tabId, url: null });
+        return;
+      }
+      applySnapshotsForTab({ tabId: info.tabId, url: tab.url || null });
+      if (isConsentActive()) {
+        fetchConsentSnapshot({ silent: true });
+        startConsentPolling();
+      } else {
+        stopConsentPolling();
+      }
+    });
   });
 }
 if (chrome.tabs && chrome.tabs.onUpdated) {
   chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-    if (changeInfo.status === 'loading' || changeInfo.url) {
-      storageSnapshotsByTab.delete(tabId);
-      consentSnapshotsByTab.delete(tabId);
-      if (tabId === currentTabId) {
+    if (changeInfo.url) {
+      const tabUuid = tabIdToUuid.get(tabId);
+    if (tabUuid) {
+      storageSnapshotsByTab.delete(tabUuid);
+      consentSnapshotsByTab.delete(tabUuid);
+      consentCoreSignaturesByTab.delete(tabUuid);
+    }
+    tabIdToUuid.delete(tabId);
+    clearSessionSnapshots(tabUuid);
+    if (tabId === currentTabId) {
         setStorageEmpty('No snapshot yet for this tab.');
         setConsentEmpty('No snapshot yet for this tab.');
+        if (isConsentActive()) {
+          fetchConsentSnapshot({ silent: true });
+          startConsentPolling();
+        } else {
+          stopConsentPolling();
+        }
       }
     }
+    if (changeInfo.status === 'complete' && tabId === currentTabId) {
+      if (isConsentActive()) {
+        fetchConsentSnapshot({ silent: true });
+        startConsentPolling();
+      } else {
+        stopConsentPolling();
+      }
+    }
+  });
+}
+
+if (chrome.tabs && chrome.tabs.onRemoved) {
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    const tabUuid = tabIdToUuid.get(tabId);
+    if (tabUuid) {
+      storageSnapshotsByTab.delete(tabUuid);
+      consentSnapshotsByTab.delete(tabUuid);
+      consentCoreSignaturesByTab.delete(tabUuid);
+    }
+    tabIdToUuid.delete(tabId);
+    clearSessionSnapshots(tabUuid);
   });
 }
