@@ -323,7 +323,7 @@
         gap: 8px;
         flex-wrap: wrap;
       }
-      .iq-section {
+      .panel-section {
         border: 1px solid #262626;
         background: #151515;
         border-radius: 12px;
@@ -332,24 +332,27 @@
         flex-direction: column;
         gap: 10px;
       }
-      .iq-section + .iq-section {
-        margin-top: 10px;
+      .panel-section + .panel-section {
+        margin-top: 16px;
       }
-      .iq-section-title {
+      .panel-section-title {
         font-size: 13px;
         font-weight: 600;
         letter-spacing: 0.4px;
         color: #e3e3e3;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 4px;
       }
-      .iq-section-title span {
+      .panel-section-title span {
         font-size: 11px;
         font-weight: 500;
         color: #9c9c9c;
         text-transform: uppercase;
         letter-spacing: 0.6px;
+      }
+      .logger-status-hidden {
+        display: none;
       }
       .iq-includes {
         display: flex;
@@ -667,7 +670,10 @@
         border: 1px solid #3a3a3a;
       }
       .record {
-        width: 100%;
+        width: fit-content;
+        margin: 0 auto;
+        padding-left: 28px;
+        padding-right: 28px;
         padding: 10px 12px;
         border-radius: 20px;
         border: 1px solid #3a3a3a;
@@ -817,65 +823,72 @@
         </div>
 
       <section id="feature-logger" class="feature-section active" role="tabpanel">
-        <label id="filename-field" class="field">
-          <span>Save log as</span>
-          <input id="filename" type="text" placeholder="Enter name" required />
-          <span id="filename-error" class="field-error hidden">Filename is required</span>
-        </label>
-        <button id="record" class="record" type="button">
-          <span class="icon" aria-hidden="true"></span>
-          <span id="record-label">Start recording</span>
-        </button>
-        <div id="destination" class="destination hidden">
-          <div>Stored in:</div>
-          <div id="destination-value" class="saving-value"></div>
+        <div class="panel-section">
+          <div class="panel-section-title"><span>Session</span><span>Logger</span></div>
+          <label id="filename-field" class="field">
+            <span>Save log as</span>
+            <input id="filename" type="text" placeholder="Enter name" required />
+            <span id="filename-error" class="field-error hidden">Filename is required</span>
+          </label>
+          <button id="record" class="record" type="button">
+            <span class="icon" aria-hidden="true"></span>
+            <span id="record-label">Start recording</span>
+          </button>
         </div>
-        <div id="saving" class="destination hidden">
-          <div>Stored session:</div>
-          <div id="saving-value" class="saving-value"></div>
-        </div>
-        <div id="count" class="destination hidden">
-          <div>Logs captured:</div>
-          <div id="count-value" class="saving-value"></div>
-        </div>
-        <div id="completed" class="destination hidden completed-block">
-          <div class="completed-title">SESSION COMPLETED</div>
-          <div>Stored in:</div>
-          <div id="completed-sent" class="saving-value"></div>
-          <div class="completed-label">Stored session:</div>
-          <div id="completed-saved" class="saving-value"></div>
-          <div class="completed-label">Logs captured:</div>
-          <div id="completed-count" class="saving-value"></div>
-        </div>
-        <div id="status" class="status"></div>
-        <div class="storage-group">
-          <div class="storage-header">
-            <span>Logs Preview</span>
-            <span id="logger-preview-count">0</span>
+        <div class="logger-status-hidden">
+          <div id="destination" class="destination hidden">
+            <div>Stored in:</div>
+            <div id="destination-value" class="saving-value"></div>
           </div>
-          <div class="iq-preview-shell">
-            <div class="iq-preview-toolbar">
-              <span class="iq-preview-label">json</span>
-              <button id="logger-copy" class="iq-copy" type="button">
-                <span class="iq-copy-icon" aria-hidden="true">
-                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                    <mask id="copy-cutout-logger" maskUnits="userSpaceOnUse">
-                      <rect x="0" y="0" width="20" height="20" fill="white"></rect>
-                      <rect x="6" y="6" width="11" height="11" rx="2" fill="black"></rect>
-                    </mask>
-                    <rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" mask="url(#copy-cutout-logger)"></rect>
-                    <rect x="6.5" y="6.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></rect>
-                  </svg>
-                </span>
-                <span class="iq-check" aria-hidden="true">
-                  <svg viewBox="0 0 12 10" aria-hidden="true" focusable="false">
-                    <path d="M1 5.5 L4.5 9 L11 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"></path>
-                  </svg>
-                </span>
-                <span class="iq-copy-text">Copy</span>
-              </button>
+          <div id="saving" class="destination hidden">
+            <div>Stored session:</div>
+            <div id="saving-value" class="saving-value"></div>
+          </div>
+          <div id="count" class="destination hidden">
+            <div>Logs captured:</div>
+            <div id="count-value" class="saving-value"></div>
+          </div>
+          <div id="completed" class="destination hidden completed-block">
+            <div class="completed-title">SESSION COMPLETED</div>
+            <div>Stored in:</div>
+            <div id="completed-sent" class="saving-value"></div>
+            <div class="completed-label">Stored session:</div>
+            <div id="completed-saved" class="saving-value"></div>
+            <div class="completed-label">Logs captured:</div>
+            <div id="completed-count" class="saving-value"></div>
+          </div>
+          <div id="status" class="status"></div>
+        </div>
+        <div class="panel-section">
+          <div class="storage-group">
+            <div class="storage-header">
+              <span>Logs Preview</span>
+              <span id="logger-preview-count">0</span>
             </div>
-            <pre id="logger-preview" class="storage-value logger-preview"></pre>
+            <div class="iq-preview-shell">
+              <div class="iq-preview-toolbar">
+                <span class="iq-preview-label">json</span>
+                <button id="logger-copy" class="iq-copy" type="button">
+                  <span class="iq-copy-icon" aria-hidden="true">
+                    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                      <mask id="copy-cutout-logger" maskUnits="userSpaceOnUse">
+                        <rect x="0" y="0" width="20" height="20" fill="white"></rect>
+                        <rect x="6" y="6" width="11" height="11" rx="2" fill="black"></rect>
+                      </mask>
+                      <rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" mask="url(#copy-cutout-logger)"></rect>
+                      <rect x="6.5" y="6.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></rect>
+                    </svg>
+                  </span>
+                  <span class="iq-check" aria-hidden="true">
+                    <svg viewBox="0 0 12 10" aria-hidden="true" focusable="false">
+                      <path d="M1 5.5 L4.5 9 L11 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"></path>
+                    </svg>
+                  </span>
+                  <span class="iq-copy-text">Copy</span>
+                </button>
+              </div>
+              <pre id="logger-preview" class="storage-value logger-preview"></pre>
+            </div>
           </div>
         </div>
       </section>
@@ -894,8 +907,8 @@
 
       <section id="feature-iq" class="feature-section" role="tabpanel">
         <div class="iq-form">
-          <div class="iq-section">
-            <div class="iq-section-title">Step 1<span>Get Token</span></div>
+          <div class="panel-section">
+            <div class="panel-section-title">Step 1<span>Get Token</span></div>
             <label class="field">
               <span>Account</span>
               <input id="iq-account" type="text" placeholder="success-nathan-schrader" />
@@ -927,8 +940,8 @@
               <input id="iq-host" type="text" placeholder="us-west-2-platform.tealiumapis.com" />
             </label>
           </div>
-          <div class="iq-section">
-            <div class="iq-section-title">Step 2<span>Fetch Profile</span></div>
+          <div class="panel-section">
+            <div class="panel-section-title">Step 2<span>Fetch Profile</span></div>
             <div class="iq-includes">
               <label class="export-option"><input type="checkbox" class="iq-include" value="loadRules" checked /> loadRules</label>
               <label class="export-option"><input type="checkbox" class="iq-include" value="tags" checked /> tags</label>

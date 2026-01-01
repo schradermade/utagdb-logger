@@ -333,6 +333,7 @@ const setConsentPill = (el, value, tone) => {
   }
 };
 
+
 const normalizeValue = (value) => {
   if (value == null) {
     return '';
