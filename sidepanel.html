@@ -11,20 +11,27 @@
         min-width: 340px;
         background: #1f1f1f;
         color: #e6e6e6;
+        overflow-x: hidden;
+      }
+      html {
+        overflow-x: hidden;
       }
       .header {
-        background: #252525;
-        padding: 12px 16px;
-        margin: 0 0 16px;
+        background: #121212;
+        padding: 8px 16px;
+        margin: 0;
       }
       .content {
         padding: 0 16px 16px;
       }
       .feature-shell {
-        margin-bottom: 12px;
-        padding: 8px;
-        border-radius: 14px;
-        border: 1px solid #262626;
+        margin: 0 -16px 12px;
+        padding: 6px 16px;
+        border-radius: 0;
+        border-top: 0;
+        border-bottom: 1px solid #262626;
+        border-left: 0;
+        border-right: 0;
         background: #171717;
       }
       .feature-shell-title {
@@ -43,30 +50,24 @@
         overflow-y: hidden;
         padding-bottom: 4px;
         scroll-snap-type: x proximity;
-        scrollbar-width: thin;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
       }
       .feature-nav::-webkit-scrollbar {
-        height: 6px;
-      }
-      .feature-nav::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .feature-nav::-webkit-scrollbar-thumb {
-        background: #2f2f2f;
-        border-radius: 999px;
+        display: none;
       }
       .feature-card {
         border: 1px solid #262626;
         background: #121212;
         color: #cfcfcf;
-        padding: 6px 4px;
+        padding: 8px 6px;
         border-radius: 10px;
         text-align: center;
         cursor: pointer;
-        min-height: 46px;
+        min-height: 54px;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 6px;
         transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
         align-items: center;
         justify-content: center;
@@ -88,32 +89,14 @@
         opacity: 0.5;
         cursor: not-allowed;
       }
-      .feature-icon {
-        width: 20px;
-        height: 20px;
-        border-radius: 0;
-        background: transparent;
-        border: none;
-        display: grid;
-        place-items: center;
-        font-weight: 600;
-        letter-spacing: 0.4px;
-        font-size: 9px;
-        color: #9ad3a7;
-        text-transform: uppercase;
-      }
-      .feature-card.active .feature-icon {
-        background: transparent;
-        border-color: transparent;
-        color: #d7ffe3;
-      }
       .feature-title {
-        font-size: 8px;
-        font-weight: 700;
-        line-height: 1;
-        text-transform: uppercase;
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.2;
+        text-transform: none;
         letter-spacing: 0.6px;
-        opacity: 0.7;
+        color: #e3e3e3;
+        opacity: 0.85;
       }
       .feature-subtitle {
         display: none;
@@ -125,12 +108,26 @@
         display: block;
       }
       .title {
-        font-size: 15px;
-        font-weight: 500;
+        font-size: 12px;
+        font-weight: 600;
         margin: 0;
         color: #f1f1f1;
         letter-spacing: 0.6px;
         text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .title-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        color: #ffffff;
+        font-size: 12px;
+        line-height: 1;
+        filter: brightness(1.25) contrast(1.1);
       }
       .field {
         display: flex;
@@ -241,49 +238,42 @@
   </head>
   <body>
     <div class="header">
-      <div class="title">Tealium Tools</div>
+      <div class="title">
+        <span class="title-icon" aria-hidden="true">🛠️</span>
+        <span>Tools</span>
+      </div>
     </div>
     <div class="content">
       <div class="feature-shell">
         <div class="feature-nav" role="tablist" aria-label="Features">
           <button class="feature-card active" type="button" data-feature="logger" aria-selected="true">
-            <span class="feature-icon" aria-hidden="true">DB</span>
             <span class="feature-title">utag.db Logger</span>
           </button>
           <button class="feature-card" type="button" data-feature="session" aria-selected="false">
-            <span class="feature-icon" aria-hidden="true">SS</span>
             <span class="feature-title">Session Viewer</span>
           </button>
           <button class="feature-card" type="button" data-feature="rules" aria-selected="false">
-            <span class="feature-icon" aria-hidden="true">LR</span>
             <span class="feature-title">Load Rules</span>
           </button>
           <button class="feature-card" type="button" data-feature="payloads" aria-selected="false">
-            <span class="feature-icon" aria-hidden="true">PL</span>
             <span class="feature-title">Payload Lab</span>
           </button>
           <button class="feature-card" type="button" data-feature="consent" aria-selected="false">
-            <span class="feature-icon" aria-hidden="true">CO</span>
             <span class="feature-title">Consent Monitor</span>
           </button>
           <button class="feature-card" type="button" data-feature="network" aria-selected="false">
-            <span class="feature-icon" aria-hidden="true">NW</span>
             <span class="feature-title">Network Watch</span>
           </button>
           <button class="feature-card" type="button" data-feature="events" aria-selected="false">
-            <span class="feature-icon" aria-hidden="true">EV</span>
             <span class="feature-title">Event Stream</span>
           </button>
           <button class="feature-card" type="button" data-feature="storage" aria-selected="false">
-            <span class="feature-icon" aria-hidden="true">ST</span>
             <span class="feature-title">Storage Map</span>
           </button>
           <button class="feature-card" type="button" data-feature="qa" aria-selected="false">
-            <span class="feature-icon" aria-hidden="true">QA</span>
             <span class="feature-title">QA Checklist</span>
           </button>
           <button class="feature-card" type="button" data-feature="export" aria-selected="false">
-            <span class="feature-icon" aria-hidden="true">EX</span>
             <span class="feature-title">Export Hub</span>
           </button>
         </div>
