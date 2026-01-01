@@ -425,12 +425,12 @@ const refreshLoggerPreview = () => {
         entryLines.forEach((line, lineIndex) => {
           const prefix = lineIndex === 0 ? logNumber : ' '.repeat(pad);
           formatted.push(
-            `<span class="logger-line">` +
-              `<span class="logger-line-number" aria-hidden="true">${escapeHtml(
+            `<span class="preview-line">` +
+              `<span class="preview-line-number" aria-hidden="true">${escapeHtml(
                 prefix
               )}</span>` +
-              `<span class="logger-line-sep" aria-hidden="true"> | </span>` +
-              `<span class="logger-line-text">${escapeHtml(line)}</span>` +
+              `<span class="preview-line-sep" aria-hidden="true"> | </span>` +
+              `<span class="preview-line-text">${escapeHtml(line)}</span>` +
               `</span>`
           );
         });
@@ -578,9 +578,18 @@ function refreshExportPreview() {
     const lines = previewText.split('\n');
     const padded = String(lines.length).length;
     const numbered = lines
-      .map((line, index) => `${String(index + 1).padStart(padded, ' ')} | ${line}`)
-      .join('\n');
-    exportPreview.textContent = numbered;
+      .map(
+        (line, index) =>
+          `<span class="preview-line">` +
+          `<span class="preview-line-number" aria-hidden="true">${String(
+            index + 1
+          ).padStart(padded, ' ')}</span>` +
+          `<span class="preview-line-sep" aria-hidden="true"> | </span>` +
+          `<span class="preview-line-text">${escapeHtml(line)}</span>` +
+          `</span>`
+      )
+      .join('');
+    exportPreview.innerHTML = numbered;
     exportStatus.textContent = `Preview updated at ${new Date().toLocaleTimeString()}`;
     if (exportSize) {
       const bytes = new TextEncoder().encode(exportCaseFileText).length;
