@@ -287,6 +287,34 @@
         gap: 8px;
         flex-wrap: wrap;
       }
+      .iq-section {
+        border: 1px solid #262626;
+        background: #151515;
+        border-radius: 12px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .iq-section + .iq-section {
+        margin-top: 10px;
+      }
+      .iq-section-title {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        color: #e3e3e3;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .iq-section-title span {
+        font-size: 11px;
+        font-weight: 500;
+        color: #9c9c9c;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
       .iq-includes {
         display: flex;
         flex-wrap: wrap;
@@ -707,49 +735,55 @@
 
       <section id="feature-iq" class="feature-section" role="tabpanel">
         <div class="iq-form">
-          <label class="field">
-            <span>Account</span>
-            <input id="iq-account" type="text" placeholder="success-nathan-schrader" />
-          </label>
-          <label class="field">
-            <span>Profile</span>
-            <input id="iq-profile" type="text" placeholder="main" />
-          </label>
-          <label class="field">
-            <span>Username</span>
-            <input id="iq-username" type="text" placeholder="user@example.com" />
-          </label>
-          <label class="field">
-            <span>API Key</span>
-            <input id="iq-key" type="password" placeholder="API key" />
-          </label>
-          <div class="iq-actions">
-            <button id="iq-auth" class="storage-button" type="button">Get Token</button>
+          <div class="iq-section">
+            <div class="iq-section-title">Step 1<span>Get Token</span></div>
+            <label class="field">
+              <span>Account</span>
+              <input id="iq-account" type="text" placeholder="success-nathan-schrader" />
+            </label>
+            <label class="field">
+              <span>Profile</span>
+              <input id="iq-profile" type="text" placeholder="main" />
+            </label>
+            <label class="field">
+              <span>Username</span>
+              <input id="iq-username" type="text" placeholder="user@example.com" />
+            </label>
+            <label class="field">
+              <span>API Key</span>
+              <input id="iq-key" type="password" placeholder="API key" />
+            </label>
+            <div class="iq-actions">
+              <button id="iq-auth" class="storage-button" type="button">Get Token</button>
+            </div>
+            <label class="field">
+              <span>Token</span>
+              <input id="iq-token" type="password" placeholder="Paste token to reuse" />
+            </label>
+            <label class="field">
+              <span>Host</span>
+              <input id="iq-host" type="text" placeholder="us-west-2-platform.tealiumapis.com" />
+            </label>
           </div>
-          <label class="field">
-            <span>Token</span>
-            <input id="iq-token" type="password" placeholder="Paste token to reuse" />
-          </label>
-          <label class="field">
-            <span>Host</span>
-            <input id="iq-host" type="text" placeholder="us-west-2-platform.tealiumapis.com" />
-          </label>
-          <div class="iq-includes">
-            <label class="export-option"><input type="checkbox" class="iq-include" value="loadRules" checked /> loadRules</label>
-            <label class="export-option"><input type="checkbox" class="iq-include" value="tags" checked /> tags</label>
-            <label class="export-option"><input type="checkbox" class="iq-include" value="tags.templateList" /> tags.templateList</label>
-            <label class="export-option"><input type="checkbox" class="iq-include" value="tags.template" /> tags.template</label>
-            <label class="export-option"><input type="checkbox" class="iq-include" value="extensions" checked /> extensions</label>
-            <label class="export-option"><input type="checkbox" class="iq-include" value="variables" checked /> variables</label>
-            <label class="export-option"><input type="checkbox" class="iq-include" value="events" /> events</label>
-            <label class="export-option"><input type="checkbox" class="iq-include" value="versionIDs" /> versionIDs</label>
-          </div>
-          <label class="field">
-            <span>Custom includes (comma separated)</span>
-            <input id="iq-includes-custom" type="text" placeholder="loadRules, tags.templateList" />
-          </label>
-          <div class="iq-actions">
-            <button id="iq-fetch" class="storage-button" type="button">Fetch iQ Profile</button>
+          <div class="iq-section">
+            <div class="iq-section-title">Step 2<span>Fetch Profile</span></div>
+            <div class="iq-includes">
+              <label class="export-option"><input type="checkbox" class="iq-include" value="loadRules" checked /> loadRules</label>
+              <label class="export-option"><input type="checkbox" class="iq-include" value="tags" checked /> tags</label>
+              <label class="export-option"><input type="checkbox" class="iq-include" value="tags.templateList" /> tags.templateList</label>
+              <label class="export-option"><input type="checkbox" class="iq-include" value="tags.template" /> tags.template</label>
+              <label class="export-option"><input type="checkbox" class="iq-include" value="extensions" checked /> extensions</label>
+              <label class="export-option"><input type="checkbox" class="iq-include" value="variables" checked /> variables</label>
+              <label class="export-option"><input type="checkbox" class="iq-include" value="events" /> events</label>
+              <label class="export-option"><input type="checkbox" class="iq-include" value="versionIDs" /> versionIDs</label>
+            </div>
+            <label class="field">
+              <span>Custom includes (comma separated)</span>
+              <input id="iq-includes-custom" type="text" placeholder="loadRules, tags.templateList" />
+            </label>
+            <div class="iq-actions">
+              <button id="iq-fetch" class="storage-button" type="button">Fetch iQ Profile</button>
+            </div>
           </div>
         </div>
         <div id="iq-status" class="status">No profile fetched yet.</div>
