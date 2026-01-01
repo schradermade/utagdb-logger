@@ -310,6 +310,14 @@ const stringifyLogArg = (value) => {
     return '';
   }
   if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        return JSON.stringify(JSON.parse(trimmed), null, 2);
+      } catch (err) {
+        return value;
+      }
+    }
     return value;
   }
   try {
@@ -319,24 +327,36 @@ const stringifyLogArg = (value) => {
   }
 };
 
-const formatLoggerEntry = (entry) => {
+const parseJsonString = (value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  const trimmed = value.trim();
+  if (
+    !(trimmed.startsWith('{') || trimmed.startsWith('[')) ||
+    !(trimmed.endsWith('}') || trimmed.endsWith(']'))
+  ) {
+    return value;
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch (err) {
+    return value;
+  }
+};
+
+const transformLogEntryForPreview = (entry) => {
   if (!entry || typeof entry !== 'object') {
-    return String(entry || '');
+    return entry;
   }
-  if (entry.event) {
-    return String(entry.event);
+  const next = { ...entry };
+  if (next.console && Array.isArray(next.console.args)) {
+    next.console = {
+      ...next.console,
+      args: next.console.args.map(parseJsonString),
+    };
   }
-  const sequence =
-    entry.console && entry.console.sequence != null
-      ? entry.console.sequence
-      : entry.console && entry.console.db_index != null
-        ? entry.console.db_index
-        : null;
-  const args = entry.console && Array.isArray(entry.console.args)
-    ? entry.console.args.map(stringifyLogArg).filter(Boolean)
-    : [];
-  const base = args.length ? args.join(' ') : stringifyLogArg(entry.console || entry);
-  return sequence != null ? `#${sequence} ${base}` : base;
+  return next;
 };
 
 const refreshLoggerPreview = () => {
@@ -380,13 +400,19 @@ const refreshLoggerPreview = () => {
         return;
       }
       const startIndex = Math.max(0, logs.length - LOGGER_PREVIEW_LIMIT);
-      const slice = logs.slice(startIndex);
-      const pad = String(logs.length).length;
-      const numbered = slice
-        .map((entry, index) => {
-          const lineNumber = String(startIndex + index + 1).padStart(pad, ' ');
-          return `${lineNumber} | ${formatLoggerEntry(entry)}`;
-        })
+      const slice = logs
+        .slice(startIndex)
+        .map((entry) => transformLogEntryForPreview(entry));
+      let prettyText = '';
+      try {
+        prettyText = JSON.stringify(slice, null, 2);
+      } catch (err) {
+        prettyText = slice.map((entry) => stringifyLogArg(entry)).join('\n');
+      }
+      const lines = prettyText.split('\n');
+      const pad = String(lines.length).length;
+      const numbered = lines
+        .map((line, index) => `${String(index + 1).padStart(pad, ' ')} | ${line}`)
         .join('\n');
       loggerPreview.textContent = numbered;
     });
