@@ -229,6 +229,17 @@ const getActiveTabInfo = (callback) => {
   });
 };
 
+const getActiveTabUrl = () => {
+  try {
+    if (window && window.lastActiveTabUrl) {
+      return window.lastActiveTabUrl;
+    }
+  } catch (err) {
+    return null;
+  }
+  return null;
+};
+
 const resolveTabUuid = (tabId, callback) => {
   if (!tabId) {
     callback(null);
@@ -329,6 +340,7 @@ const exportRedactUrls = document.getElementById('export-redact-urls');
 const exportRedactSignals = document.getElementById('export-redact-signals');
 const exportSize = document.getElementById('export-size');
 let exportCaseFileText = '';
+let exportCaseFileObject = null;
 const LOGGER_PREVIEW_LIMIT = 120;
 let loggerPreviewRawText = '';
 let iqPreviewRawText = '';
@@ -903,6 +915,12 @@ const renderRecentExports = (items) => {
     const meta = document.createElement('div');
     meta.className = 'recent-meta';
     meta.textContent = `${item.timestamp} • ${item.size} bytes`;
+    let url = null;
+    if (item.sourceUrl) {
+      url = document.createElement('div');
+      url.className = 'recent-url';
+      url.textContent = item.sourceUrl;
+    }
     const tags = document.createElement('div');
     tags.className = 'recent-tags';
     (item.sections || []).forEach((section) => {
@@ -937,6 +955,9 @@ const renderRecentExports = (items) => {
     actions.appendChild(download);
     entry.appendChild(title);
     entry.appendChild(meta);
+    if (url) {
+      entry.appendChild(url);
+    }
     entry.appendChild(tags);
     entry.appendChild(actions);
     recentList.appendChild(entry);
@@ -962,7 +983,7 @@ const loadRecentExports = () => {
   });
 };
 
-const saveRecentExport = (payload, filename, size, sections) => {
+const saveRecentExport = (payload, filename, size, sections, sourceUrl) => {
   if (!storageLocal) {
     return;
   }
@@ -977,11 +998,30 @@ const saveRecentExport = (payload, filename, size, sections) => {
         sections,
         timestamp: new Date().toLocaleString(),
         payload,
+        sourceUrl,
       },
       ...history,
     ].slice(0, EXPORT_HISTORY_LIMIT);
     storageLocal.set({ [EXPORT_HISTORY_KEY]: next });
   });
+};
+
+const getSourceUrlFromCaseFile = (caseFile) => {
+  if (!caseFile || typeof caseFile !== 'object') {
+    return null;
+  }
+  const consentSnapshots =
+    caseFile.consent_monitor && Array.isArray(caseFile.consent_monitor.snapshots)
+      ? caseFile.consent_monitor.snapshots
+      : [];
+  if (consentSnapshots.length > 0 && consentSnapshots[0].url) {
+    return consentSnapshots[0].url;
+  }
+  const iqSnapshot = caseFile.iq_profile && caseFile.iq_profile.snapshot;
+  if (iqSnapshot && iqSnapshot.url) {
+    return iqSnapshot.url;
+  }
+  return null;
 };
 
 const transformCaseFileForPreview = (caseFile) => {
@@ -1029,10 +1069,11 @@ function refreshExportPreview() {
     }
     return;
   }
-  exportCaseFileText = JSON.stringify(caseFile, null, 2);
+    exportCaseFileObject = caseFile;
+    exportCaseFileText = JSON.stringify(caseFile, null, 2);
     const previewCaseFile = transformCaseFileForPreview(caseFile);
     const previewText = JSON.stringify(previewCaseFile, null, 2);
-  renderPreviewLines(exportPreview, previewText);
+    renderPreviewLines(exportPreview, previewText);
   if (exportCopyButton) {
     exportCopyButton.dataset.raw = exportCaseFileText;
   }
@@ -1064,6 +1105,7 @@ const exportCaseFile = () => {
     sections.push('iQ Profile');
   }
   const size = new TextEncoder().encode(exportCaseFileText).length;
+  const sourceUrl = getSourceUrlFromCaseFile(exportCaseFileObject);
   chrome.downloads.download(
     {
       url,
@@ -1072,7 +1114,7 @@ const exportCaseFile = () => {
     },
     () => {
       URL.revokeObjectURL(url);
-      saveRecentExport(exportCaseFileText, filename, size, sections);
+      saveRecentExport(exportCaseFileText, filename, size, sections, sourceUrl);
       loadRecentExports();
     }
   );
@@ -1630,6 +1672,9 @@ const applySnapshotsForTab = ({ tabId, url }) => {
       iqHostInput.value = host;
     }
   });
+  if (url) {
+    window.lastActiveTabUrl = url;
+  }
 };
 
 getActiveTabInfo((info) => {
