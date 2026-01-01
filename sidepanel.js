@@ -346,6 +346,7 @@ let loggerPreviewRawText = '';
 let iqPreviewRawText = '';
 const EXPORT_HISTORY_KEY = 'exportHistory';
 const EXPORT_HISTORY_LIMIT = 5;
+const pendingExportDownloads = new Map();
 
 const getCurrentTabUuid = () =>
   currentTabUuid || (currentTabId ? tabIdToUuid.get(currentTabId) : null);
@@ -930,7 +931,7 @@ const renderRecentExports = (items) => {
       tags.appendChild(tag);
     });
     const actions = document.createElement('div');
-    actions.className = 'storage-controls';
+    actions.className = 'storage-controls recent-actions';
     const download = document.createElement('button');
     download.className = 'storage-button';
     download.type = 'button';
@@ -1112,10 +1113,18 @@ const exportCaseFile = () => {
       filename,
       saveAs: true,
     },
-    () => {
+    (downloadId) => {
       URL.revokeObjectURL(url);
-      saveRecentExport(exportCaseFileText, filename, size, sections, sourceUrl);
-      loadRecentExports();
+      if (!downloadId) {
+        return;
+      }
+      pendingExportDownloads.set(downloadId, {
+        payload: exportCaseFileText,
+        filename,
+        size,
+        sections,
+        sourceUrl,
+      });
     }
   );
 };
@@ -1765,5 +1774,32 @@ if (chrome.tabs && chrome.tabs.onRemoved) {
     }
     tabIdToUuid.delete(tabId);
     clearSessionSnapshots(tabUuid);
+  });
+}
+
+if (chrome.downloads && chrome.downloads.onChanged) {
+  chrome.downloads.onChanged.addListener((delta) => {
+    if (!delta || !delta.id || !delta.state || !delta.state.current) {
+      return;
+    }
+    if (delta.state.current !== 'complete') {
+      if (delta.state.current === 'interrupted') {
+        pendingExportDownloads.delete(delta.id);
+      }
+      return;
+    }
+    const pending = pendingExportDownloads.get(delta.id);
+    if (!pending) {
+      return;
+    }
+    pendingExportDownloads.delete(delta.id);
+    saveRecentExport(
+      pending.payload,
+      pending.filename,
+      pending.size,
+      pending.sections,
+      pending.sourceUrl
+    );
+    loadRecentExports();
   });
 }
