@@ -1,7 +1,7 @@
 # Tealium Debug Logger — Project Documentation
 
 ## Overview
-This repository contains a Chrome MV3 extension and a small local Node server used to capture Tealium `utag.DB` debug logs from a single browser tab. The extension provides a focused workflow for starting/stopping a recording session, and each session writes to its own timestamped log file. The UI is intentionally minimal and dark‑mode oriented for quick use during debugging.
+This repository contains a Chrome MV3 extension and a small local Node server used to capture Tealium `utag.DB` debug logs from a single browser tab. The extension provides a focused workflow for starting/stopping a recording session, and each session writes to its own timestamped log file. The UI is a compact, dark‑mode side panel with a feature switcher and a dedicated logger view.
 
 ## Goals
 - Capture `utag.DB` logs reliably from page context (not from console scraping).
@@ -16,17 +16,18 @@ This repository contains a Chrome MV3 extension and a small local Node server us
 - **`console-bridge.js`** — Injected into the page context (MAIN world). Wraps `utag.DB` and posts entries via `window.postMessage`.
 - **`content.js`** — Runs at `document_start`; relays `console-bridge` messages to the extension service worker.
 - **`background.js`** — Service worker that manages sessions, counts, and forwards payloads to the local server.
-- **`popup.html` / `popup.js`** — Popup UI for naming sessions and starting/stopping recording, plus display of status, destination, saved file name, and counts.
+- **`sidepanel.html` / `sidepanel.js`** — Side panel UI with feature cards and logger view; `popup.js` powers the logger controls and status UI.
+- **`popup.html` / `popup.js`** — Legacy popup UI (not used by default in side panel mode).
 
 ### Server
 - **`server.mjs`** — Express server that accepts payloads and writes per‑session files to `logs/sessions/`. It writes both JSONL (`.log`) and pretty JSON (`.pretty.log`) and parses JSON strings in console arguments for readability.
 
 ## Data Flow
-1. `console-bridge.js` wraps `utag.DB` once recording is enabled for the current tab.
-2. Each `utag.DB` call is serialized and posted via `window.postMessage`.
+1. `console-bridge.js` wraps `utag.DB` once recording is enabled for the current tab and polls `utag.db_log`.
+2. New `utag.db_log` entries are serialized (with error details) and posted via `window.postMessage`, including `db_index` and `db_generation`.
 3. `content.js` receives the message and forwards it to the service worker.
-4. `background.js` stamps session metadata and sends it to the local server.
-5. `server.mjs` writes the payload to a per‑session file and pretty log.
+4. `background.js` stamps session metadata and sends it to the local server (serialized by session+URL).
+5. `server.mjs` buffers console payloads and flushes them in order on session end.
 
 ## Session Model
 - A session starts when the user clicks **Start recording**.
@@ -44,7 +45,7 @@ This repository contains a Chrome MV3 extension and a small local Node server us
 ## Logging and Files
 - **JSONL log**: `logs/sessions/<name>-<timestamp>.log`
 - **Pretty log**: `logs/sessions/<name>-<timestamp>.pretty.log`
-- **Ordering**: console log entries are ordered by `sequence` with a 5‑second gap timeout in `server.mjs`.
+- **Ordering**: console log entries are ordered by `db_generation` + `db_index`. The server buffers console logs and writes them on session end to preserve strict ordering.
 
 ### Sample Payload
 ```json
@@ -65,8 +66,8 @@ This repository contains a Chrome MV3 extension and a small local Node server us
 ```
 
 ## UI Design
-- Dark gray theme, minimal typography.
-- Header bar spans the full width.
+- Dark gray theme with compact side panel header.
+- Horizontal feature card slider switches between stubbed tools and the logger.
 - Filename input is required and locked during recording.
 - Recording state shows:
   - `Sending to: <endpoint>`
@@ -79,16 +80,17 @@ This repository contains a Chrome MV3 extension and a small local Node server us
   - `Logs sent: <count>`
 
 ## Key Behaviors & Design Decisions
-- **Page context hook**: `utag.DB` is wrapped in the MAIN world to capture actual Tealium debug output.
+- **Page context hook**: `utag.DB` is wrapped in the MAIN world and `utag.db_log` is polled to capture all entries.
 - **Tab scoping**: only the tab where recording was started is allowed to send logs.
 - **Session isolation**: each recording session maps to its own output files.
-- **No initial payload**: starting a session no longer auto‑sends a `utag` payload.
+- **Error serialization**: `Error` objects are captured with `name`, `message`, `stack`, and optional `cause`.
 - **Counts**: live count is tracked in the background service worker and includes start/end entries.
+- **Side panel**: action click opens the side panel; popup UI remains for backward compatibility.
 
 ## Configuration
 - **Endpoint**: `http://localhost:3005`
 - **Server body limit**: `1mb` (adjustable in `server.mjs`).
-- **Sequence gap timeout**: `5s` (adjustable in `server.mjs`).
+- **Ordering source**: `db_index` + `db_generation` (server buffers until session end).
 
 ## How to Run
 
@@ -107,8 +109,10 @@ node server.mjs
 - `background.js` — session management, counting, request forwarding.
 - `console-bridge.js` — `utag.DB` hook and serialization.
 - `content.js` — message bridge to service worker.
-- `popup.html` — UI markup and styles.
-- `popup.js` — UI behavior and state management.
+- `sidepanel.html` — Side panel markup and styles (feature cards + logger).
+- `sidepanel.js` — Side panel feature switching.
+- `popup.html` — Legacy popup markup and styles.
+- `popup.js` — Logger UI behavior and state management.
 - `server.mjs` — local logging server.
 
 ## Known Limitations
@@ -126,5 +130,6 @@ node server.mjs
 - Added MV3 extension with popup controls and tab‑scoped logging.
 - Implemented sessionized logging with user‑defined filenames.
 - Added local server with JSONL + pretty log output.
-- Introduced ordered log output with sequence reordering.
+- Introduced ordered log output based on `db_index` + `db_generation` with server-side buffering.
+- Added side panel UI with feature cards and stub sections.
 - Removed bridge status payloads and auto‑utag payload on start.
