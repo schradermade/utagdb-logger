@@ -345,6 +345,14 @@ const parseJsonString = (value) => {
   }
 };
 
+const escapeHtml = (value) =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 const transformLogEntryForPreview = (entry) => {
   if (!entry || typeof entry !== 'object') {
     return entry;
@@ -403,18 +411,31 @@ const refreshLoggerPreview = () => {
       const slice = logs
         .slice(startIndex)
         .map((entry) => transformLogEntryForPreview(entry));
-      let prettyText = '';
-      try {
-        prettyText = JSON.stringify(slice, null, 2);
-      } catch (err) {
-        prettyText = slice.map((entry) => stringifyLogArg(entry)).join('\n');
-      }
-      const lines = prettyText.split('\n');
-      const pad = String(lines.length).length;
-      const numbered = lines
-        .map((line, index) => `${String(index + 1).padStart(pad, ' ')} | ${line}`)
-        .join('\n');
-      loggerPreview.textContent = numbered;
+      const pad = String(logs.length).length;
+      const formatted = [];
+      slice.forEach((entry, index) => {
+        const logNumber = String(startIndex + index + 1).padStart(pad, ' ');
+        let prettyEntry = '';
+        try {
+          prettyEntry = JSON.stringify(entry, null, 2);
+        } catch (err) {
+          prettyEntry = stringifyLogArg(entry);
+        }
+        const entryLines = prettyEntry.split('\n');
+        entryLines.forEach((line, lineIndex) => {
+          const prefix = lineIndex === 0 ? logNumber : ' '.repeat(pad);
+          formatted.push(
+            `<span class="logger-line">` +
+              `<span class="logger-line-number" aria-hidden="true">${escapeHtml(
+                prefix
+              )}</span>` +
+              `<span class="logger-line-sep" aria-hidden="true"> | </span>` +
+              `<span class="logger-line-text">${escapeHtml(line)}</span>` +
+              `</span>`
+          );
+        });
+      });
+      loggerPreview.innerHTML = formatted.join('');
     });
   });
 };
