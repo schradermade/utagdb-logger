@@ -15,6 +15,8 @@ function readUtagData() {
 }
 
 let gpcFromPage;
+let gpcRequestCounter = 0;
+const pendingGpcRequests = new Map();
 
 function normalizeGpcValue(value) {
   if (value === true || value === false) {
@@ -31,6 +33,31 @@ function normalizeGpcValue(value) {
     return false;
   }
   return undefined;
+}
+
+function requestPageGpc() {
+  return new Promise((resolve) => {
+    const requestId = `gpc-${Date.now()}-${gpcRequestCounter++}`;
+    const timer = setTimeout(() => {
+      pendingGpcRequests.delete(requestId);
+      resolve(null);
+    }, 200);
+    pendingGpcRequests.set(requestId, { resolve, timer });
+    try {
+      window.postMessage(
+        {
+          source: 'tealium-extension',
+          type: 'get_gpc',
+          requestId,
+        },
+        '*'
+      );
+    } catch (err) {
+      clearTimeout(timer);
+      pendingGpcRequests.delete(requestId);
+      resolve(null);
+    }
+  });
 }
 
 function getTabUuid() {
@@ -685,6 +712,7 @@ async function collectConsentSnapshot() {
   const utagData = readUtagData() || {};
   const utag = window.utag || {};
   const cookies = parseCookieMap();
+  await requestPageGpc();
   const signals = [];
   const categoryStatusMap = new Map();
 
@@ -852,15 +880,9 @@ async function collectConsentSnapshot() {
   }
 
   const optOutData = collectOptOutGpcData(cookies);
-  const onetrustGpcValue =
-    onetrustGpcFlags.browserGpcFlag !== null &&
-    onetrustGpcFlags.browserGpcFlag !== undefined
-      ? onetrustGpcFlags.browserGpcFlag
-      : onetrustGpcFlags.isGpcEnabled;
   const navigatorGpc = navigator.globalPrivacyControl;
   addSignal('GPC signal (page)', gpcFromPage, { allowUndefined: true });
-  addSignal('GPC signal (navigator)', navigatorGpc, { allowUndefined: true });
-  addSignal('GPC signal (OneTrust)', onetrustGpcValue, { allowUndefined: true });
+  addSignal('GPC signal (content script)', navigatorGpc, { allowUndefined: true });
   addSignal(
     'Opt-out cookie',
     optOutData.optOutCookie || 'Not set'
@@ -1265,6 +1287,19 @@ window.addEventListener('message', (event) => {
   }
   if (event.data.type === 'gpc_signal') {
     gpcFromPage = event.data.value;
+    return;
+  }
+  if (event.data.type === 'gpc_response') {
+    const requestId = event.data.requestId;
+    if (requestId && pendingGpcRequests.has(requestId)) {
+      const pending = pendingGpcRequests.get(requestId);
+      pendingGpcRequests.delete(requestId);
+      clearTimeout(pending.timer);
+      pending.resolve(event.data.value);
+    }
+    if (event.data.value !== undefined) {
+      gpcFromPage = event.data.value;
+    }
     return;
   }
 });

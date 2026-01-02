@@ -1363,11 +1363,14 @@ const renderConsentSignals = (signals) => {
     return;
   }
   const signalHelp = {
-    'OneTrust isGpcEnabled': 'OptanonConsent param isGpcEnabled.',
-    'OneTrust browserGpcFlag': 'OptanonConsent param browserGpcFlag.',
-    'GPC signal (page)': 'Page context navigator.globalPrivacyControl.',
-    'GPC signal (navigator)': 'Content script navigator.globalPrivacyControl.',
-    'GPC signal (OneTrust)': 'Derived from OneTrust GPC flags.',
+    'OneTrust isGpcEnabled':
+      'OneTrust CMP decision about whether GPC is enabled for this user/session (can differ from the raw browser signal).',
+    'OneTrust browserGpcFlag':
+      'Raw browser signal captured by OneTrust from navigator.globalPrivacyControl (0/1).',
+    'GPC signal (page)':
+      'Page context navigator.globalPrivacyControl (what DevTools console shows in the page).',
+    'GPC signal (content script)':
+      'Extension content-script context navigator.globalPrivacyControl (isolated from page overrides).',
   };
   consentSignalList.innerHTML = '';
   if (!signals || signals.length === 0) {
@@ -1385,7 +1388,11 @@ const renderConsentSignals = (signals) => {
     key.textContent = signal.label;
     const value = document.createElement('div');
     value.className = 'storage-value';
-    value.textContent = normalizeValue(signal.value);
+    const normalizedValue =
+      signal.label === 'GPC signal (content script)' && signal.value === undefined
+        ? 'Unavailable in extension context'
+        : normalizeValue(signal.value);
+    value.textContent = normalizedValue;
     const helpText = signalHelp[signal.label];
     const helper = helpText ? document.createElement('div') : null;
     if (helper) {

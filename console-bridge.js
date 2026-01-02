@@ -150,23 +150,37 @@
     if (event.source !== window || !event.data) {
       return;
     }
-    if (event.data.source !== 'tealium-extension' || event.data.type !== 'set_enabled') {
+    if (event.data.source !== 'tealium-extension') {
       return;
     }
-    const nextEnabled = Boolean(event.data.enabled);
-    if (nextEnabled && !enabled) {
-      enabled = true;
-      sequence = 0;
-      if (event.data.initial) {
-        lastDbIndex = 0;
-        drainDbLog();
-      } else {
-        syncDbIndex();
+    if (event.data.type === 'set_enabled') {
+      const nextEnabled = Boolean(event.data.enabled);
+      if (nextEnabled && !enabled) {
+        enabled = true;
+        sequence = 0;
+        if (event.data.initial) {
+          lastDbIndex = 0;
+          drainDbLog();
+        } else {
+          syncDbIndex();
+        }
+        wrapUtagDb();
+        return;
       }
-      wrapUtagDb();
+      enabled = nextEnabled;
       return;
     }
-    enabled = nextEnabled;
+    if (event.data.type === 'get_gpc') {
+      window.postMessage(
+        {
+          source: 'tealium-extension',
+          type: 'gpc_response',
+          requestId: event.data.requestId || null,
+          value: navigator.globalPrivacyControl,
+        },
+        '*'
+      );
+    }
   });
 
 })();
