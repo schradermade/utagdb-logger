@@ -37,6 +37,9 @@ const setActiveFeature = (feature) => {
   if (feature === 'consent' && typeof fetchConsentSnapshot === 'function') {
     fetchConsentSnapshot();
   }
+  if (feature === 'network') {
+    loadNetworkLogs();
+  }
   if (feature === 'consent') {
     startConsentPolling();
   } else {
@@ -163,6 +166,13 @@ const isConsentActive = () => {
     (button) => button.dataset.feature === 'consent'
   );
   return Boolean(consentButton && consentButton.classList.contains('active'));
+};
+
+const isNetworkActive = () => {
+  const networkButton = featureButtons.find(
+    (button) => button.dataset.feature === 'network'
+  );
+  return Boolean(networkButton && networkButton.classList.contains('active'));
 };
 
 const startConsentPolling = () => {
@@ -315,6 +325,13 @@ const loggerPreview = document.getElementById('logger-preview');
 const loggerPreviewCount = document.getElementById('logger-preview-count');
 const loggerCopyButton = document.getElementById('logger-copy');
 const exportCopyButton = document.getElementById('export-copy');
+const networkRefreshButton = document.getElementById('network-refresh');
+const networkStatus = document.getElementById('network-status');
+const networkList = document.getElementById('network-list');
+const networkCount = document.getElementById('network-count');
+const networkOnlyErrors = document.getElementById('network-only-errors');
+const networkOnlyTealium = document.getElementById('network-only-tealium');
+const networkTagFilter = document.getElementById('network-tag-filter');
 const iqAccountInput = document.getElementById('iq-account');
 const iqProfileInput = document.getElementById('iq-profile');
 const iqUsernameInput = document.getElementById('iq-username');
@@ -350,6 +367,42 @@ const pendingExportDownloads = new Map();
 
 const getCurrentTabUuid = () =>
   currentTabUuid || (currentTabId ? tabIdToUuid.get(currentTabId) : null);
+
+function getIqTagMap(snapshot) {
+  const map = new Map();
+  if (!snapshot || !snapshot.response) {
+    return map;
+  }
+  const tags = Array.isArray(snapshot.response.tags)
+    ? snapshot.response.tags
+    : Array.isArray(snapshot.response.data && snapshot.response.data.tags)
+      ? snapshot.response.data.tags
+      : [];
+  tags.forEach((tag) => {
+    if (!tag || typeof tag !== 'object') {
+      return;
+    }
+    const id =
+      tag.id ||
+      tag.tag_id ||
+      tag.tagId ||
+      tag.uid ||
+      (tag.tag && (tag.tag.id || tag.tag.tag_id));
+    const name =
+      tag.name || tag.title || tag.label || tag.tag_name || tag.display_name;
+    if (id) {
+      map.set(String(id), name ? String(name) : `Tag ${id}`);
+    }
+  });
+  return map;
+}
+
+function isTealiumUrl(url) {
+  if (!url) {
+    return false;
+  }
+  return /tealium|utag|tiq|collect|i\.gif/i.test(url);
+}
 
 const setConsentPill = (el, value, tone) => {
   if (!el) {
@@ -1150,6 +1203,18 @@ if (exportIncludeConsent) {
 if (exportIncludeIq) {
   exportIncludeIq.addEventListener('change', refreshExportPreview);
 }
+if (networkRefreshButton) {
+  networkRefreshButton.addEventListener('click', loadNetworkLogs);
+}
+if (networkOnlyErrors) {
+  networkOnlyErrors.addEventListener('change', loadNetworkLogs);
+}
+if (networkOnlyTealium) {
+  networkOnlyTealium.addEventListener('change', loadNetworkLogs);
+}
+if (networkTagFilter) {
+  networkTagFilter.addEventListener('input', loadNetworkLogs);
+}
 
 if (iqAuthButton) {
   iqAuthButton.addEventListener('click', fetchIqToken);
@@ -1211,10 +1276,19 @@ if (chrome && chrome.storage && chrome.storage.onChanged) {
     if (hasLoggerUpdate) {
       refreshLoggerPreview();
     }
+    const hasNetworkUpdate = keys.some((key) => key.startsWith('networkLogs:tab:'));
+    if (hasNetworkUpdate) {
+      const activeButton = featureButtons.find((button) =>
+        button.classList.contains('active')
+      );
+      if (activeButton && activeButton.dataset.feature === 'network') {
+        loadNetworkLogs();
+      }
+    }
   });
 }
 
-const normalizeConsentCategory = (category) => {
+function normalizeConsentCategory(category) {
   if (!category) {
     return { name: '', accepted: false };
   }
@@ -1228,9 +1302,9 @@ const normalizeConsentCategory = (category) => {
     };
   }
   return { name: String(category).trim(), accepted: false };
-};
+}
 
-const buildConsentCoreSignature = (payload) => {
+function buildConsentCoreSignature(payload) {
   if (!payload) {
     return '';
   }
@@ -1259,9 +1333,9 @@ const buildConsentCoreSignature = (payload) => {
   } catch (err) {
     return String(signaturePayload);
   }
-};
+}
 
-const renderList = (container, entries, filter) => {
+function renderList(container, entries, filter) {
   if (!container) {
     return;
   }
@@ -1294,7 +1368,93 @@ const renderList = (container, entries, filter) => {
     item.appendChild(value);
     container.appendChild(item);
   });
-};
+}
+
+function renderNetworkLogs(logs, tagMap) {
+  if (!networkList || !networkStatus) {
+    return;
+  }
+  networkList.innerHTML = '';
+  if (!Array.isArray(logs) || logs.length === 0) {
+    networkStatus.textContent = 'No network logs yet.';
+    if (networkCount) {
+      networkCount.textContent = '0';
+    }
+    return;
+  }
+  const onlyErrors = Boolean(networkOnlyErrors && networkOnlyErrors.checked);
+  const onlyTealium = Boolean(networkOnlyTealium && networkOnlyTealium.checked);
+  const tagFilter = networkTagFilter ? networkTagFilter.value.trim().toLowerCase() : '';
+  const filtered = logs.filter((entry) => {
+    if (!entry) {
+      return false;
+    }
+    if (onlyTealium && !isTealiumUrl(entry.url)) {
+      return false;
+    }
+    if (onlyErrors) {
+      const hasError = entry.error || (entry.status && entry.status >= 400);
+      if (!hasError) {
+        return false;
+      }
+    }
+    if (tagFilter) {
+      const tagId = entry.tagId ? String(entry.tagId).toLowerCase() : '';
+      const tagName = entry.tagId
+        ? (tagMap.get(String(entry.tagId)) || '').toLowerCase()
+        : '';
+      const url = entry.url ? String(entry.url).toLowerCase() : '';
+      if (
+        !tagId.includes(tagFilter) &&
+        !tagName.includes(tagFilter) &&
+        !url.includes(tagFilter)
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+  if (networkCount) {
+    networkCount.textContent = String(filtered.length);
+  }
+  if (filtered.length === 0) {
+    networkStatus.textContent = 'No matching requests.';
+    return;
+  }
+  networkStatus.textContent = '';
+  const sorted = [...filtered].sort((a, b) => (b.timeStamp || 0) - (a.timeStamp || 0));
+  sorted.forEach((entry) => {
+    const item = document.createElement('div');
+    item.className = 'storage-item';
+    const key = document.createElement('div');
+    key.className = 'storage-key';
+    const timeLabel = entry.timeStamp
+      ? new Date(entry.timeStamp).toLocaleTimeString()
+      : 'Unknown';
+    const statusLabel = entry.error
+      ? `Error: ${entry.error}`
+      : entry.status
+        ? `Status: ${entry.status}`
+        : 'Status: Unknown';
+    key.textContent = `${timeLabel} • ${entry.method || 'GET'} • ${statusLabel}`;
+    const value = document.createElement('div');
+    value.className = 'storage-value';
+    const tagLabel = entry.tagId
+      ? tagMap.get(String(entry.tagId)) || `Tag ${entry.tagId}`
+      : null;
+    const lines = [entry.url];
+    if (tagLabel) {
+      lines.push(tagLabel);
+    }
+    if (entry.initiator) {
+      lines.push(`Initiator: ${entry.initiator}`);
+    }
+    value.textContent = lines.join('\n');
+    item.appendChild(key);
+    item.appendChild(value);
+    networkList.appendChild(item);
+  });
+}
 
 const updateCounts = (counts) => {
   if (storageCookiesCount) storageCookiesCount.textContent = String(counts.cookies);
@@ -1313,6 +1473,46 @@ const applyStorageFilter = () => {
   renderList(storageSessionList, storageData.sessionStorage, filter);
   renderList(storageUtagList, storageData.utag, filter);
 };
+
+function loadNetworkLogs() {
+  if (!storageLocal || !networkStatus) {
+    return;
+  }
+  getActiveTabInfo(({ tabId }) => {
+    if (!tabId) {
+      networkStatus.textContent = 'No active tab.';
+      if (networkCount) {
+        networkCount.textContent = '0';
+      }
+      return;
+    }
+    const key = `networkLogs:tab:${tabId}`;
+    storageLocal.get([key], (items) => {
+      if (chrome.runtime.lastError) {
+        networkStatus.textContent = chrome.runtime.lastError.message;
+        return;
+      }
+      const logs = Array.isArray(items[key]) ? items[key] : [];
+      const tabUuid = getCurrentTabUuid();
+      if (!tabUuid) {
+        renderNetworkLogs(logs, new Map());
+        return;
+      }
+      const existing = iqSnapshotsByTab.get(tabUuid);
+      if (existing) {
+        renderNetworkLogs(logs, getIqTagMap(existing));
+        return;
+      }
+      const iqKey = getSessionKeys(tabUuid).iqProfile;
+      loadSessionSnapshot(iqKey, (payload) => {
+        if (payload) {
+          iqSnapshotsByTab.set(tabUuid, payload);
+        }
+        renderNetworkLogs(logs, getIqTagMap(payload));
+      });
+    });
+  });
+}
 
 const collectStorage = () => {
   if (!storageStatus) {
@@ -1680,6 +1880,9 @@ const applySnapshotsForTab = ({ tabId, url }) => {
       const host = iqHostsByTab.get(tabUuid) || '';
       iqHostInput.value = host;
     }
+    if (isNetworkActive()) {
+      loadNetworkLogs();
+    }
   });
   if (url) {
     window.lastActiveTabUrl = url;
@@ -1729,17 +1932,17 @@ if (chrome.tabs && chrome.tabs.onUpdated) {
   chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (changeInfo.url) {
       const tabUuid = tabIdToUuid.get(tabId);
-    if (tabUuid) {
-      storageSnapshotsByTab.delete(tabUuid);
-      consentSnapshotsByTab.delete(tabUuid);
-      consentCoreSignaturesByTab.delete(tabUuid);
-      iqSnapshotsByTab.delete(tabUuid);
-      iqTokensByTab.delete(tabUuid);
-      iqHostsByTab.delete(tabUuid);
-    }
-    tabIdToUuid.delete(tabId);
-    clearSessionSnapshots(tabUuid);
-    if (tabId === currentTabId) {
+      if (tabUuid) {
+        storageSnapshotsByTab.delete(tabUuid);
+        consentSnapshotsByTab.delete(tabUuid);
+        consentCoreSignaturesByTab.delete(tabUuid);
+        iqSnapshotsByTab.delete(tabUuid);
+        iqTokensByTab.delete(tabUuid);
+        iqHostsByTab.delete(tabUuid);
+      }
+      tabIdToUuid.delete(tabId);
+      clearSessionSnapshots(tabUuid);
+      if (tabId === currentTabId) {
         setStorageEmpty('No snapshot yet for this tab.');
         setConsentEmpty('No snapshot yet for this tab.');
         if (isConsentActive()) {
@@ -1748,6 +1951,7 @@ if (chrome.tabs && chrome.tabs.onUpdated) {
         } else {
           stopConsentPolling();
         }
+        loadNetworkLogs();
       }
     }
     if (changeInfo.status === 'complete' && tabId === currentTabId) {

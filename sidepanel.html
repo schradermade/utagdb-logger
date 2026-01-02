@@ -143,6 +143,15 @@
         border-color: #53a76b;
         box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
       }
+      .network-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        align-items: center;
+        font-size: 12px;
+        color: #cfcfcf;
+        margin-bottom: 10px;
+      }
       .top-tab {
         border: 1px solid #2a2a2a;
         background: #171717;
@@ -1146,7 +1155,30 @@
       </section>
 
       <section id="feature-network" class="feature-section" role="tabpanel">
-        <div class="status">Network Watch is coming soon.</div>
+        <div class="storage-controls">
+          <button id="network-refresh" class="storage-button" type="button">Refresh</button>
+        </div>
+        <div class="network-options">
+          <label class="export-option">
+            <input id="network-only-errors" type="checkbox" />
+            <span>Errors only</span>
+          </label>
+          <label class="export-option">
+            <input id="network-only-tealium" type="checkbox" />
+            <span>Tealium only</span>
+          </label>
+          <label class="storage-search" style="flex: 1 1 180px;">
+            <input id="network-tag-filter" type="text" placeholder="Filter by tag ID" />
+          </label>
+        </div>
+        <div id="network-status" class="status">No network logs yet.</div>
+        <div class="storage-group">
+          <div class="storage-header">
+            <span>Requests</span>
+            <span id="network-count">0</span>
+          </div>
+          <div id="network-list" class="storage-list"></div>
+        </div>
       </section>
 
       <section id="feature-events" class="feature-section" role="tabpanel">

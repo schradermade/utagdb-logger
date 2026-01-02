@@ -54,7 +54,7 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
 - iQ Profile tab authenticates via `POST /v3/auth/accounts/<account>/profiles/<profile>` and fetches profile JSON from `us-west-2-platform` with `includes` parameters.
 
 ## UI Summary
-- Fixed header with Tools/Export tabs and robot icon.
+- Fixed header with Tools/Recent/Export tabs and robot icon.
 - Feature cards scroll horizontally; Tools view contains the logger and stubbed sections.
 - Logger preview:
   - Pretty-printed JSON
@@ -64,6 +64,9 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
   - Token retrieval (username + API key)
   - Includes toggles + custom includes
   - Pretty preview with non-selectable line numbers
+- Network Watch view:
+  - Captures request logs per tab and filters errors/Tealium traffic
+  - Maps tag IDs when available
 - Consent view:
   - Required / Present / GPC / State
   - Canonical category labels (e.g., `C0001: Strictly Necessary`)
@@ -76,6 +79,7 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
 - `consentSnapshot:tab:<uuid>`
 - `storageSnapshot:tab:<uuid>`
 - `iqProfileSnapshot:tab:<uuid>`
+- `networkLogs:tab:<tabId>`
 
 ## Configuration
 - `http://localhost:3005` is used by the optional `send_utag` workflow.

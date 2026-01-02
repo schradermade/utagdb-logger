@@ -25,6 +25,103 @@ let currentSessionId = null;
 let currentCount = null;
 const consoleSendQueues = new Map();
 const logWriteQueues = new Map();
+const networkWriteQueues = new Map();
+const NETWORK_LOG_LIMIT = 200;
+const requestTagCache = new Map();
+
+const getNetworkLogKey = (tabId) => `networkLogs:tab:${tabId || 'no-tab'}`;
+
+const enqueueNetworkLogWrite = (tabId, entry) => {
+  const key = getNetworkLogKey(tabId);
+  const prev = networkWriteQueues.get(key) || Promise.resolve();
+  const next = prev
+    .catch(() => {})
+    .then(
+      () =>
+        new Promise((resolve) => {
+          chrome.storage.local.get({ [key]: [] }, (items) => {
+            const logs = Array.isArray(items[key]) ? items[key] : [];
+            logs.push(entry);
+            const trimmed = logs.slice(-NETWORK_LOG_LIMIT);
+            chrome.storage.local.set({ [key]: trimmed }, () => resolve());
+          });
+        })
+    );
+  networkWriteQueues.set(key, next);
+  next.finally(() => {
+    if (networkWriteQueues.get(key) === next) {
+      networkWriteQueues.delete(key);
+    }
+  });
+};
+
+const parseTagIdFromUrl = (url) => {
+  if (!url) {
+    return null;
+  }
+  try {
+    const parsed = new URL(url);
+    const candidates = ['utag_tag', 'tag_id', 'tagid', 'utag_id', 'tid', 't_id'];
+    for (const key of candidates) {
+      const value = parsed.searchParams.get(key);
+      if (value) {
+        return value;
+      }
+    }
+    const pathMatch = parsed.pathname.match(/\/utag\.(\d+)\.js/i);
+    if (pathMatch && pathMatch[1]) {
+      return pathMatch[1];
+    }
+    return null;
+  } catch (err) {
+    return null;
+  }
+};
+
+const parseTagIdFromPayload = (body) => {
+  if (!body) {
+    return null;
+  }
+  const tryKeys = (obj) => {
+    if (!obj || typeof obj !== 'object') {
+      return null;
+    }
+    const candidates = ['utag_tag', 'tag_id', 'tagid', 'utag_id', 'tid', 't_id'];
+    for (const key of candidates) {
+      if (obj[key]) {
+        return obj[key];
+      }
+    }
+    return null;
+  };
+  if (body.formData) {
+    const tag = tryKeys(
+      Object.fromEntries(
+        Object.entries(body.formData).map(([key, value]) => [
+          key,
+          Array.isArray(value) ? value[0] : value,
+        ])
+      )
+    );
+    if (tag) {
+      return tag;
+    }
+  }
+  if (body.raw && body.raw.length) {
+    try {
+      const decoder = new TextDecoder('utf-8');
+      const text = decoder.decode(body.raw[0].bytes || new Uint8Array());
+      const parsed = text.trim().startsWith('{') ? JSON.parse(text) : null;
+      const tag = tryKeys(parsed);
+      if (tag) {
+        return tag;
+      }
+    } catch (err) {
+      return null;
+    }
+  }
+  return null;
+};
 
 const getSessionLogKey = (sessionId) =>
   `${LOGS_KEY_PREFIX}${sessionId || 'no-session'}`;
@@ -107,6 +204,77 @@ const enqueueConsoleSend = (key, payload) => {
     }
   });
 };
+
+if (chrome.webRequest) {
+  chrome.webRequest.onBeforeRequest.addListener(
+    (details) => {
+      if (!details || !details.requestId || !details.tabId || details.tabId < 0) {
+        return;
+      }
+      const tagId =
+        parseTagIdFromPayload(details.requestBody) ||
+        parseTagIdFromUrl(details.url);
+      if (tagId) {
+        requestTagCache.set(details.requestId, String(tagId));
+      }
+    },
+    { urls: ['http://*/*', 'https://*/*'] },
+    ['requestBody']
+  );
+
+  chrome.webRequest.onCompleted.addListener(
+    (details) => {
+      if (!details || !details.tabId || details.tabId < 0) {
+        return;
+      }
+      const entry = {
+        url: details.url,
+        method: details.method,
+        status: details.statusCode,
+        fromCache: details.fromCache || false,
+        type: details.type,
+        timeStamp: details.timeStamp,
+        tabId: details.tabId,
+        initiator: details.initiator || null,
+        tagId: requestTagCache.get(details.requestId) || parseTagIdFromUrl(details.url),
+        error: null,
+      };
+      requestTagCache.delete(details.requestId);
+      enqueueNetworkLogWrite(details.tabId, entry);
+    },
+    { urls: ['http://*/*', 'https://*/*'] }
+  );
+
+  chrome.webRequest.onErrorOccurred.addListener(
+    (details) => {
+      if (!details || !details.tabId || details.tabId < 0) {
+        return;
+      }
+      const entry = {
+        url: details.url,
+        method: details.method,
+        status: null,
+        fromCache: false,
+        type: details.type,
+        timeStamp: details.timeStamp,
+        tabId: details.tabId,
+        initiator: details.initiator || null,
+        tagId: requestTagCache.get(details.requestId) || parseTagIdFromUrl(details.url),
+        error: details.error || 'request failed',
+      };
+      requestTagCache.delete(details.requestId);
+      enqueueNetworkLogWrite(details.tabId, entry);
+    },
+    { urls: ['http://*/*', 'https://*/*'] }
+  );
+}
+
+if (chrome.tabs && chrome.tabs.onRemoved) {
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    const key = getNetworkLogKey(tabId);
+    chrome.storage.local.remove([key]);
+  });
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'get_enabled') {

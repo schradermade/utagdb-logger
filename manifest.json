@@ -9,7 +9,7 @@
     "48": "jarvis-robot.png",
     "128": "jarvis-robot.png"
   },
-  "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel", "downloads"],
+  "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel", "downloads", "webRequest", "webRequestBlocking"],
   "host_permissions": ["http://localhost:3005/*", "http://*/*", "https://*/*"],
   "background": {
     "service_worker": "background.js"
