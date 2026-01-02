@@ -1,7 +1,7 @@
 # Jarvis — Project Documentation
 
 ## Overview
-Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` logs from the page context, inspects consent/CMP state, and exports a case file that can be handed to an LLM or CSE. The primary UI is a dark, compact side panel with a Tools tab and an Export tab. A small optional local server exists for sending `utag` payloads, but log capture now persists in extension storage.
+Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` logs from the page context, inspects consent/CMP state, and exports a case file that can be handed to an LLM or CSE. The primary UI is a dark, compact side panel with Tools, Export, and Recent tabs. A small optional local server exists for sending `utag` payloads, but log capture now persists in extension storage.
 
 ## Goals
 - Capture `utag.DB` logs reliably from page context (not console scraping).
@@ -13,10 +13,10 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
 
 ### Extension (MV3)
 - `manifest.json` — MV3 configuration, permissions, side panel, and app icons.
-- `console-bridge.js` — Injected into the page (MAIN world). Wraps `utag.DB` and posts entries via `window.postMessage`.
-- `content.js` — Runs at `document_start`; relays console logs and consent snapshots to the service worker, and provides tab UUIDs.
+- `console-bridge.js` — Injected into the page (MAIN world). Wraps `utag.DB`, posts entries via `window.postMessage`, and responds to GPC requests from the content script.
+- `content.js` — Runs at `document_start`; relays console logs and consent snapshots to the service worker, provides tab UUIDs, and requests page-context GPC for consent snapshots.
 - `background.js` — Service worker that manages sessions, counts, and persists logs to `chrome.storage.local`.
-- `sidepanel.html` / `sidepanel.js` — Side panel UI, feature switching, consent polling, and export preview.
+- `sidepanel.html` / `sidepanel.js` — Side panel UI, feature switching, consent polling, export preview, and per-tab UI state handling.
 - `popup.html` / `popup.js` — Legacy popup UI (secondary, not the primary workflow).
 
 ### Local Server (Optional)
@@ -32,6 +32,7 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
    - `utagdbSession:<sessionId>` (session metadata)
 4. Session start/end markers are inserted as log entries.
 5. `sessionLogCount`, `sessionId`, and `lastSessionId` are updated for UI and export.
+6. The side panel logger preview filters session logs by the active tab UUID.
 
 ### Consent Monitor
 - `content.js` collects consent data from supported CMPs and signals including:
@@ -39,6 +40,7 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
   - TCF (`__tcfapi`), USP (`__uspapi`), opt-out cookies, and GPC
 - Snapshots are stored in `chrome.storage.local` under `consentSnapshot:tab:<uuid>`.
 - `sidepanel.js` auto-refreshes consent on open and polls every 2 seconds while the Consent Monitor tab is active, deduping updates to prevent flicker.
+- GPC signals include both page-context and content-script values for comparison.
 
 ### Storage Map
 - A per-tab snapshot of cookies, local storage, session storage, and `utag` data is collected on demand and stored under `storageSnapshot:tab:<uuid>`.
@@ -52,6 +54,7 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
 - Export supports toggles and redaction options for URLs and signal values.
 - Preview is pretty-printed and line-numbered, but the exported JSON remains raw (no data shape changes).
 - iQ Profile tab authenticates via `POST /v3/auth/accounts/<account>/profiles/<profile>` and fetches profile JSON from `us-west-2-platform` with `includes` parameters.
+- Recent iQ token inputs (last 5) are stored globally and can be applied with one click.
 
 ## UI Summary
 - Fixed header with Tools/Export tabs and robot icon.
@@ -64,6 +67,7 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
   - Token retrieval (username + API key)
   - Includes toggles + custom includes
   - Pretty preview with non-selectable line numbers
+  - Recent Clients list for quick form fill
 - Consent view:
   - Required / Present / GPC / State
   - Canonical category labels (e.g., `C0001: Strictly Necessary`)
@@ -76,6 +80,8 @@ Jarvis is a Chrome MV3 extension for Tealium debugging. It captures `utag.DB` lo
 - `consentSnapshot:tab:<uuid>`
 - `storageSnapshot:tab:<uuid>`
 - `iqProfileSnapshot:tab:<uuid>`
+- `exportHistory`
+- `iqRecentInputs`
 
 ## Configuration
 - `http://localhost:3005` is used by the optional `send_utag` workflow.
