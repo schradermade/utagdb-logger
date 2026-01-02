@@ -16,6 +16,7 @@ const completedSavedEl = document.getElementById('completed-saved');
 const completedCountEl = document.getElementById('completed-count');
 let isRecording = false;
 let wasRecording = false;
+let stopCooldownActive = false;
 const ENDPOINT = 'Extension storage';
 let sessionId = null;
 let lastLogCount = 0;
@@ -27,7 +28,31 @@ function setStatus(text, isError) {
 
 function setRecordButton(isOn) {
   recordButton.classList.toggle('recording', isOn);
-  recordLabel.textContent = isOn ? 'Recording - Stop' : 'Start recording';
+  if (!stopCooldownActive) {
+    recordLabel.textContent = isOn ? 'Recording - Stop' : 'Start recording';
+  }
+}
+
+function startStopCooldown() {
+  if (!recordButton || stopCooldownActive) {
+    return;
+  }
+  stopCooldownActive = true;
+  recordButton.disabled = true;
+  recordButton.classList.add('cooldown');
+  if (recordLabel) {
+    recordLabel.textContent = 'Stopping...';
+  }
+}
+
+function endStopCooldown() {
+  if (!stopCooldownActive || !recordButton) {
+    return;
+  }
+  stopCooldownActive = false;
+  recordButton.disabled = false;
+  recordButton.classList.remove('cooldown');
+  setRecordButton(isRecording);
 }
 
 function setDestination(isOn) {
@@ -142,10 +167,12 @@ const setEnabled = (enabled) => {
     (response) => {
       if (chrome.runtime.lastError) {
         setStatus(chrome.runtime.lastError.message, true);
+        endStopCooldown();
         return;
       }
       if (!response || !response.ok) {
         setStatus('Failed to update setting', true);
+        endStopCooldown();
         return;
       }
       if (enabled) {
@@ -172,6 +199,7 @@ const setEnabled = (enabled) => {
         setFilenameError(false);
         isRecording = false;
       }
+      endStopCooldown();
     }
   );
 };
@@ -202,5 +230,8 @@ chrome.runtime.sendMessage({ type: 'get_enabled' }, (response) => {
 });
 
 recordButton.addEventListener('click', () => {
+  if (isRecording) {
+    startStopCooldown();
+  }
   setEnabled(!isRecording);
 });

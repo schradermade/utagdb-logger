@@ -87,11 +87,33 @@
         background: #6b6b6b;
         display: inline-block;
       }
+      .record .spinner {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-top-color: #ffffff;
+        display: none;
+        animation: spin 0.8s linear infinite;
+      }
       .record.recording .icon {
         border-radius: 2px;
         width: 12px;
         height: 12px;
         background: #ffebee;
+      }
+      .record.cooldown .icon {
+        display: none;
+      }
+      .record.cooldown .spinner {
+        display: inline-block;
+      }
+      .record.cooldown,
+      .record:disabled {
+        cursor: not-allowed;
+        opacity: 0.65;
+        animation: none;
+        transform: none;
       }
       .record:active {
         transform: scale(0.96);
@@ -140,6 +162,14 @@
           opacity: 1;
         }
       }
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
     </style>
   </head>
   <body>
@@ -155,6 +185,7 @@
       </label>
       <button id="record" class="record" type="button">
         <span class="icon" aria-hidden="true"></span>
+        <span class="spinner" aria-hidden="true"></span>
         <span id="record-label">Start recording</span>
       </button>
       <div id="destination" class="destination hidden">
