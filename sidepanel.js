@@ -1362,6 +1362,13 @@ const renderConsentSignals = (signals) => {
   if (!consentSignalList) {
     return;
   }
+  const signalHelp = {
+    'OneTrust isGpcEnabled': 'OptanonConsent param isGpcEnabled.',
+    'OneTrust browserGpcFlag': 'OptanonConsent param browserGpcFlag.',
+    'GPC signal (page)': 'Page context navigator.globalPrivacyControl.',
+    'GPC signal (navigator)': 'Content script navigator.globalPrivacyControl.',
+    'GPC signal (OneTrust)': 'Derived from OneTrust GPC flags.',
+  };
   consentSignalList.innerHTML = '';
   if (!signals || signals.length === 0) {
     const empty = document.createElement('div');
@@ -1379,7 +1386,16 @@ const renderConsentSignals = (signals) => {
     const value = document.createElement('div');
     value.className = 'storage-value';
     value.textContent = normalizeValue(signal.value);
+    const helpText = signalHelp[signal.label];
+    const helper = helpText ? document.createElement('div') : null;
+    if (helper) {
+      helper.className = 'signal-helper';
+      helper.textContent = helpText;
+    }
     item.appendChild(key);
+    if (helper) {
+      item.appendChild(helper);
+    }
     item.appendChild(value);
     consentSignalList.appendChild(item);
   });
