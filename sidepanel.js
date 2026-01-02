@@ -1525,7 +1525,22 @@ const applyConsentSnapshot = (payload) => {
       ? new Date(payload.captured_at).toLocaleTimeString()
       : 'just now';
     const url = payload.url || 'current tab';
-    consentMeta.textContent = `Snapshot from ${url} at ${capturedAt}`;
+    consentMeta.innerHTML = '';
+    const header = document.createElement('div');
+    header.className = 'consent-meta-header';
+    const label = document.createElement('span');
+    label.className = 'consent-meta-label';
+    label.textContent = 'Snapshot from';
+    const timeLine = document.createElement('span');
+    timeLine.className = 'consent-meta-time';
+    timeLine.textContent = capturedAt;
+    header.appendChild(label);
+    header.appendChild(timeLine);
+    const urlLine = document.createElement('div');
+    urlLine.className = 'consent-meta-url';
+    urlLine.textContent = url;
+    consentMeta.appendChild(header);
+    consentMeta.appendChild(urlLine);
   }
   renderConsentSignals(payload.signals || []);
 };
