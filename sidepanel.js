@@ -718,7 +718,7 @@ const renderIqRecents = (items) => {
         iqKeyInput.value = entry.key || '';
       }
       if (iqHostInput) {
-        iqHostInput.value = entry.host || '';
+        iqHostInput.value = '';
       }
       if (iqTokenInput) {
         iqTokenInput.value = '';
@@ -729,9 +729,7 @@ const renderIqRecents = (items) => {
         iqProfilesByTab.set(tabUuid, entry.profile || '');
         iqUsernamesByTab.set(tabUuid, entry.username || '');
         iqKeysByTab.set(tabUuid, entry.key || '');
-        if (entry.host) {
-          iqHostsByTab.set(tabUuid, entry.host);
-        }
+        iqHostsByTab.set(tabUuid, '');
         iqTokensByTab.set(tabUuid, '');
       }
       saveIqRecentInputs(entry);
