@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "description": "Tealium debugging toolkit and case file exporter.",
   "icons": {
-    "16": "jarvis-robot.png",
-    "32": "jarvis-robot.png",
-    "48": "jarvis-robot.png",
-    "128": "jarvis-robot.png"
+    "16": "jarvis-robot-extension.png",
+    "32": "jarvis-robot-extension.png",
+    "48": "jarvis-robot-extension.png",
+    "128": "jarvis-robot-extension.png"
   },
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel", "downloads"],
   "host_permissions": ["http://localhost:3005/*", "http://*/*", "https://*/*"],
@@ -16,7 +16,7 @@
   },
   "action": {
     "default_title": "Jarvis",
-    "default_icon": "jarvis-robot.png"
+    "default_icon": "jarvis-robot-extension.png"
   },
   "side_panel": {
     "default_path": "sidepanel.html"
