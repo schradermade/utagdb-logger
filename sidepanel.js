@@ -151,6 +151,10 @@ const consentCoreSignaturesByTab = new Map();
 const iqSnapshotsByTab = new Map();
 const iqTokensByTab = new Map();
 const iqHostsByTab = new Map();
+const iqAccountsByTab = new Map();
+const iqProfilesByTab = new Map();
+const iqUsernamesByTab = new Map();
+const iqKeysByTab = new Map();
 const storageLocal = chrome.storage && chrome.storage.local;
 let lastConsentRefreshAt = 0;
 const CONSENT_REFRESH_COOLDOWN_MS = 1000;
@@ -331,6 +335,8 @@ const iqMeta = document.getElementById('iq-meta');
 const iqMetaSection = document.getElementById('iq-meta-section');
 const iqMetaUrl = document.getElementById('iq-meta-url');
 const iqMetaTime = document.getElementById('iq-meta-time');
+const iqRecentList = document.getElementById('iq-recent-list');
+const iqRecentCount = document.getElementById('iq-recent-count');
 const iqIncludeInputs = Array.from(document.querySelectorAll('.iq-include'));
 const iqIncludesCustom = document.getElementById('iq-includes-custom');
 const exportIncludeLogger = document.getElementById('export-include-logger');
@@ -346,6 +352,8 @@ let loggerPreviewRawText = '';
 let iqPreviewRawText = '';
 const EXPORT_HISTORY_KEY = 'exportHistory';
 const EXPORT_HISTORY_LIMIT = 5;
+const IQ_RECENT_KEY = 'iqRecentInputs';
+const IQ_RECENT_LIMIT = 5;
 const pendingExportDownloads = new Map();
 
 const getCurrentTabUuid = () =>
@@ -481,6 +489,7 @@ const refreshLoggerPreview = () => {
   if (!loggerPreview) {
     return;
   }
+  const tabUuid = getCurrentTabUuid();
   chrome.runtime.sendMessage({ type: 'get_enabled' }, (response) => {
     if (chrome.runtime.lastError) {
       loggerPreview.textContent = chrome.runtime.lastError.message;
@@ -510,18 +519,26 @@ const refreshLoggerPreview = () => {
         return;
       }
       const logs = Array.isArray(items[logsKey]) ? items[logsKey] : [];
+      const filteredLogs = tabUuid
+        ? logs.filter((entry) => entry && entry.tab_uuid === tabUuid)
+        : [];
       if (loggerPreviewCount) {
-        loggerPreviewCount.textContent = String(logs.length);
+        loggerPreviewCount.textContent = String(filteredLogs.length);
       }
-      if (logs.length === 0) {
-        loggerPreview.textContent = 'No logs yet.';
+      if (filteredLogs.length === 0) {
+        loggerPreview.textContent = tabUuid
+          ? 'No logs yet for this tab.'
+          : 'No logs yet for this tab.';
         return;
       }
-      const startIndex = Math.max(0, logs.length - LOGGER_PREVIEW_LIMIT);
-      const slice = logs
+      const startIndex = Math.max(
+        0,
+        filteredLogs.length - LOGGER_PREVIEW_LIMIT
+      );
+      const slice = filteredLogs
         .slice(startIndex)
         .map((entry) => transformLogEntryForPreview(entry));
-      const pad = String(logs.length).length;
+      const pad = String(filteredLogs.length).length;
       let rawText = '';
       const formatted = [];
       slice.forEach((entry, index) => {
@@ -618,6 +635,145 @@ const getIqFormValues = () => ({
   key: iqKeyInput ? iqKeyInput.value.trim() : '',
   host: iqHostInput ? iqHostInput.value.trim() : '',
 });
+
+const applyIqFormForTab = (tabUuid) => {
+  if (iqAccountInput) {
+    iqAccountInput.value = tabUuid ? iqAccountsByTab.get(tabUuid) || '' : '';
+  }
+  if (iqProfileInput) {
+    iqProfileInput.value = tabUuid ? iqProfilesByTab.get(tabUuid) || '' : '';
+  }
+  if (iqUsernameInput) {
+    iqUsernameInput.value = tabUuid ? iqUsernamesByTab.get(tabUuid) || '' : '';
+  }
+  if (iqKeyInput) {
+    iqKeyInput.value = tabUuid ? iqKeysByTab.get(tabUuid) || '' : '';
+  }
+  if (iqTokenInput) {
+    const token = tabUuid ? iqTokensByTab.get(tabUuid) || '' : '';
+    iqTokenInput.value = token;
+  }
+  if (iqHostInput) {
+    const host = tabUuid ? iqHostsByTab.get(tabUuid) || '' : '';
+    iqHostInput.value = host;
+  }
+};
+
+const updateIqMap = (map, value) => {
+  const tabUuid = getCurrentTabUuid();
+  if (!tabUuid) {
+    return;
+  }
+  map.set(tabUuid, value || '');
+};
+
+const getIqRecentSignature = (entry) =>
+  [
+    entry.account || '',
+    entry.profile || '',
+    entry.username || '',
+    entry.host || '',
+  ].join('::');
+
+const renderIqRecents = (items) => {
+  if (!iqRecentList) {
+    return;
+  }
+  iqRecentList.innerHTML = '';
+  const list = Array.isArray(items) ? items : [];
+  if (iqRecentCount) {
+    iqRecentCount.textContent = String(list.length);
+  }
+  if (list.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'iq-recent-empty';
+    empty.textContent = 'No recent clients yet.';
+    iqRecentList.appendChild(empty);
+    return;
+  }
+  list.forEach((entry) => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'iq-recent-item';
+    const title = document.createElement('div');
+    title.className = 'iq-recent-title';
+    title.textContent = `${entry.account || 'account'} / ${entry.profile || 'profile'}`;
+    const meta = document.createElement('div');
+    meta.className = 'iq-recent-meta';
+    const hostLabel = entry.host ? ` • ${entry.host}` : '';
+    meta.textContent = `${entry.username || 'username'}${hostLabel}`;
+    item.appendChild(title);
+    item.appendChild(meta);
+    item.addEventListener('click', () => {
+      if (iqAccountInput) {
+        iqAccountInput.value = entry.account || '';
+      }
+      if (iqProfileInput) {
+        iqProfileInput.value = entry.profile || '';
+      }
+      if (iqUsernameInput) {
+        iqUsernameInput.value = entry.username || '';
+      }
+      if (iqKeyInput) {
+        iqKeyInput.value = entry.key || '';
+      }
+      if (iqHostInput) {
+        iqHostInput.value = entry.host || '';
+      }
+      if (iqTokenInput) {
+        iqTokenInput.value = '';
+      }
+      const tabUuid = getCurrentTabUuid();
+      if (tabUuid) {
+        iqAccountsByTab.set(tabUuid, entry.account || '');
+        iqProfilesByTab.set(tabUuid, entry.profile || '');
+        iqUsernamesByTab.set(tabUuid, entry.username || '');
+        iqKeysByTab.set(tabUuid, entry.key || '');
+        if (entry.host) {
+          iqHostsByTab.set(tabUuid, entry.host);
+        }
+        iqTokensByTab.set(tabUuid, '');
+      }
+      saveIqRecentInputs(entry);
+    });
+    iqRecentList.appendChild(item);
+  });
+};
+
+const loadIqRecents = () => {
+  if (!storageLocal) {
+    return;
+  }
+  storageLocal.get({ [IQ_RECENT_KEY]: [] }, (items) => {
+    const list = Array.isArray(items[IQ_RECENT_KEY]) ? items[IQ_RECENT_KEY] : [];
+    renderIqRecents(list);
+  });
+};
+
+const saveIqRecentInputs = (entry) => {
+  if (!storageLocal) {
+    return;
+  }
+  const nextEntry = {
+    account: entry.account || '',
+    profile: entry.profile || '',
+    username: entry.username || '',
+    key: entry.key || '',
+    host: entry.host || '',
+    savedAt: new Date().toISOString(),
+  };
+  const signature = getIqRecentSignature(nextEntry);
+  storageLocal.get({ [IQ_RECENT_KEY]: [] }, (items) => {
+    const current = Array.isArray(items[IQ_RECENT_KEY]) ? items[IQ_RECENT_KEY] : [];
+    const deduped = current.filter(
+      (item) => getIqRecentSignature(item) !== signature
+    );
+    const nextList = [nextEntry, ...deduped].slice(0, IQ_RECENT_LIMIT);
+    storageLocal.set({ [IQ_RECENT_KEY]: nextList }, () => {
+      renderIqRecents(nextList);
+    });
+  });
+};
 
 const getIqIncludes = () => {
   const includes = new Set();
@@ -723,12 +879,23 @@ const fetchIqToken = () => {
         if (host) {
           iqHostsByTab.set(tabUuid, host);
         }
+        iqAccountsByTab.set(tabUuid, account);
+        iqProfilesByTab.set(tabUuid, profile);
+        iqUsernamesByTab.set(tabUuid, username);
+        iqKeysByTab.set(tabUuid, key);
       }
       setIqToken(token);
       if (host) {
         setIqHost(host);
       }
       setIqStatus('Token received.', false);
+      saveIqRecentInputs({
+        account,
+        profile,
+        username,
+        key,
+        host: host || getIqFormValues().host,
+      });
       setButtonLoading(iqAuthButton, false);
     })
     .catch((err) => {
@@ -1151,6 +1318,9 @@ if (exportIncludeIq) {
   exportIncludeIq.addEventListener('change', refreshExportPreview);
 }
 
+if (iqRecentList) {
+  loadIqRecents();
+}
 if (iqAuthButton) {
   iqAuthButton.addEventListener('click', fetchIqToken);
 }
@@ -1174,22 +1344,34 @@ if (iqCopyButton) {
       });
   });
 }
+if (iqAccountInput) {
+  iqAccountInput.addEventListener('input', (event) => {
+    updateIqMap(iqAccountsByTab, event.target.value);
+  });
+}
+if (iqProfileInput) {
+  iqProfileInput.addEventListener('input', (event) => {
+    updateIqMap(iqProfilesByTab, event.target.value);
+  });
+}
+if (iqUsernameInput) {
+  iqUsernameInput.addEventListener('input', (event) => {
+    updateIqMap(iqUsernamesByTab, event.target.value);
+  });
+}
+if (iqKeyInput) {
+  iqKeyInput.addEventListener('input', (event) => {
+    updateIqMap(iqKeysByTab, event.target.value);
+  });
+}
 if (iqTokenInput) {
   iqTokenInput.addEventListener('input', (event) => {
-    const tabUuid = getCurrentTabUuid();
-    if (!tabUuid) {
-      return;
-    }
-    iqTokensByTab.set(tabUuid, event.target.value || '');
+    updateIqMap(iqTokensByTab, event.target.value);
   });
 }
 if (iqHostInput) {
   iqHostInput.addEventListener('input', (event) => {
-    const tabUuid = getCurrentTabUuid();
-    if (!tabUuid) {
-      return;
-    }
-    iqHostsByTab.set(tabUuid, event.target.value || '');
+    updateIqMap(iqHostsByTab, event.target.value);
   });
 }
 
@@ -1658,6 +1840,8 @@ const applySnapshotsForTab = ({ tabId, url }) => {
     setStorageEmpty('No active tab.');
     setConsentEmpty('No active tab.');
     applyIqSnapshot(null);
+    applyIqFormForTab(null);
+    refreshLoggerPreview();
     return;
   }
   resolveTabUuid(tabId, (tabUuid) => {
@@ -1665,6 +1849,8 @@ const applySnapshotsForTab = ({ tabId, url }) => {
       setStorageEmpty('No snapshot yet for this tab.');
       setConsentEmpty('No snapshot yet for this tab.');
       applyIqSnapshot(null);
+      applyIqFormForTab(null);
+      refreshLoggerPreview();
       return;
     }
     currentTabUuid = tabUuid;
@@ -1710,14 +1896,8 @@ const applySnapshotsForTab = ({ tabId, url }) => {
         }
       });
     }
-    if (iqTokenInput) {
-      const token = iqTokensByTab.get(tabUuid) || '';
-      iqTokenInput.value = token;
-    }
-    if (iqHostInput) {
-      const host = iqHostsByTab.get(tabUuid) || '';
-      iqHostInput.value = host;
-    }
+    applyIqFormForTab(tabUuid);
+    refreshLoggerPreview();
   });
   if (url) {
     window.lastActiveTabUrl = url;
@@ -1774,6 +1954,10 @@ if (chrome.tabs && chrome.tabs.onUpdated) {
       iqSnapshotsByTab.delete(tabUuid);
       iqTokensByTab.delete(tabUuid);
       iqHostsByTab.delete(tabUuid);
+      iqAccountsByTab.delete(tabUuid);
+      iqProfilesByTab.delete(tabUuid);
+      iqUsernamesByTab.delete(tabUuid);
+      iqKeysByTab.delete(tabUuid);
     }
     tabIdToUuid.delete(tabId);
     clearSessionSnapshots(tabUuid);
@@ -1809,6 +1993,10 @@ if (chrome.tabs && chrome.tabs.onRemoved) {
       iqSnapshotsByTab.delete(tabUuid);
       iqTokensByTab.delete(tabUuid);
       iqHostsByTab.delete(tabUuid);
+      iqAccountsByTab.delete(tabUuid);
+      iqProfilesByTab.delete(tabUuid);
+      iqUsernamesByTab.delete(tabUuid);
+      iqKeysByTab.delete(tabUuid);
     }
     tabIdToUuid.delete(tabId);
     clearSessionSnapshots(tabUuid);

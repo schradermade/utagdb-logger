@@ -413,6 +413,42 @@
         gap: 0;
         margin-bottom: 0;
       }
+      .iq-recent-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .iq-recent-item {
+        border: 1px solid #2a2a2a;
+        background: #151515;
+        border-radius: 10px;
+        padding: 8px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        color: #e6e6e6;
+        text-align: left;
+        cursor: pointer;
+      }
+      .iq-recent-item:hover {
+        border-color: #3b7a4d;
+        background: #101a14;
+      }
+      .iq-recent-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #e6e6e6;
+        word-break: break-all;
+      }
+      .iq-recent-meta {
+        font-size: 11px;
+        color: #9b9b9b;
+        word-break: break-all;
+      }
+      .iq-recent-empty {
+        font-size: 11px;
+        color: #8f8f8f;
+      }
       .iq-actions {
         display: flex;
         gap: 8px;
@@ -1126,6 +1162,13 @@
               <span>Host</span>
               <input id="iq-host" type="text" placeholder="us-west-2-platform.tealiumapis.com" />
             </label>
+            <div class="storage-group">
+              <div class="storage-header">
+                <span>Recent Clients</span>
+                <span id="iq-recent-count">0</span>
+              </div>
+              <div id="iq-recent-list" class="iq-recent-list"></div>
+            </div>
           </div>
           <div class="panel-section">
             <div class="panel-section-title">Step 2<span>Fetch Profile</span></div>
