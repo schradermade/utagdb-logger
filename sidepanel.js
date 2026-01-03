@@ -495,6 +495,101 @@ const renderPreviewLines = (previewEl, text) => {
   return lines.length;
 };
 
+const renderCaseFilePreviewWithLogNumbers = (previewEl, caseFile) => {
+  if (!previewEl) {
+    return;
+  }
+  const previewText = JSON.stringify(caseFile || {}, null, 2);
+  const lines = previewText.split('\n');
+  const totalLogs =
+    caseFile &&
+    caseFile.utagdb_logger &&
+    Array.isArray(caseFile.utagdb_logger.logs)
+      ? caseFile.utagdb_logger.logs.length
+      : 0;
+  const padWidth = Math.max(1, String(totalLogs || 0).length);
+  let inLogs = false;
+  let logsIndent = 0;
+  let entryDepth = 0;
+  let entryIndex = 0;
+
+  const countBrackets = (line) => {
+    let delta = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < line.length; i += 1) {
+      const ch = line[i];
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = !inString;
+        continue;
+      }
+      if (inString) {
+        continue;
+      }
+      if (ch === '{' || ch === '[') {
+        delta += 1;
+      } else if (ch === '}' || ch === ']') {
+        delta -= 1;
+      }
+    }
+    return delta;
+  };
+
+  const getIndent = (line) => {
+    const match = line.match(/^\s*/);
+    return match ? match[0].length : 0;
+  };
+
+  const formatted = lines.map((line) => {
+    const trimmed = line.trim();
+    const indent = getIndent(line);
+    let prefix = '';
+
+    if (!inLogs && trimmed.startsWith('"logs": [')) {
+      inLogs = true;
+      logsIndent = indent;
+      entryDepth = 0;
+    } else if (inLogs && trimmed === ']' && indent === logsIndent) {
+      inLogs = false;
+      entryDepth = 0;
+    } else if (inLogs) {
+      const isEntryStart = entryDepth === 0 && trimmed !== '';
+      if (isEntryStart) {
+        entryIndex += 1;
+        prefix = String(entryIndex);
+      }
+      entryDepth += countBrackets(line);
+      if (entryDepth < 0) {
+        entryDepth = 0;
+      }
+    }
+
+    const paddedPrefix = prefix
+      ? prefix.padStart(padWidth, ' ')
+      : ' '.repeat(padWidth);
+
+    return (
+      `<span class="preview-line">` +
+      `<span class="preview-line-number" aria-hidden="true">${escapeHtml(
+        paddedPrefix
+      )}</span>` +
+      `<span class="preview-line-sep" aria-hidden="true"> | </span>` +
+      `<span class="preview-line-text">${escapeHtml(line)}</span>` +
+      `</span>`
+    );
+  });
+
+  previewEl.innerHTML = formatted.join('');
+};
+
 const formatLogEntryForPreview = (entry) => {
   if (entry == null) {
     return '';
@@ -1274,8 +1369,7 @@ function refreshExportPreview() {
     exportCaseFileObject = caseFile;
     exportCaseFileText = JSON.stringify(caseFile, null, 2);
     const previewCaseFile = transformCaseFileForPreview(caseFile);
-    const previewText = JSON.stringify(previewCaseFile, null, 2);
-    renderPreviewLines(exportPreview, previewText);
+    renderCaseFilePreviewWithLogNumbers(exportPreview, previewCaseFile);
   if (exportCopyButton) {
     exportCopyButton.dataset.raw = exportCaseFileText;
   }
