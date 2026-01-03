@@ -317,6 +317,7 @@ const exportStatus = document.getElementById('export-status');
 const exportPreview = document.getElementById('export-preview');
 const loggerPreview = document.getElementById('logger-preview');
 const loggerPreviewCount = document.getElementById('logger-preview-count');
+const loggerToggleButton = document.getElementById('logger-toggle');
 const loggerCopyButton = document.getElementById('logger-copy');
 const exportCopyButton = document.getElementById('export-copy');
 const iqAccountInput = document.getElementById('iq-account');
@@ -347,7 +348,7 @@ const exportRedactSignals = document.getElementById('export-redact-signals');
 const exportSize = document.getElementById('export-size');
 let exportCaseFileText = '';
 let exportCaseFileObject = null;
-const LOGGER_PREVIEW_LIMIT = 120;
+const LOGGER_PREVIEW_LIMIT = 200;
 let loggerPreviewRawText = '';
 let iqPreviewRawText = '';
 const EXPORT_HISTORY_KEY = 'exportHistory';
@@ -355,6 +356,7 @@ const EXPORT_HISTORY_LIMIT = 5;
 const IQ_RECENT_KEY = 'iqRecentInputs';
 const IQ_RECENT_LIMIT = 5;
 const pendingExportDownloads = new Map();
+let loggerShowAll = false;
 
 const getCurrentTabUuid = () =>
   currentTabUuid || (currentTabId ? tabIdToUuid.get(currentTabId) : null);
@@ -471,9 +473,15 @@ const renderPreviewLines = (previewEl, text) => {
   return lines.length;
 };
 
-const transformLogEntryForPreview = (entry) => {
-  if (!entry || typeof entry !== 'object') {
-    return entry;
+const formatLogEntryForPreview = (entry) => {
+  if (entry == null) {
+    return '';
+  }
+  if (typeof entry === 'string') {
+    return stringifyLogArg(entry);
+  }
+  if (typeof entry !== 'object') {
+    return String(entry);
   }
   const next = { ...entry };
   if (next.console && Array.isArray(next.console.args)) {
@@ -482,14 +490,17 @@ const transformLogEntryForPreview = (entry) => {
       args: next.console.args.map(parseJsonString),
     };
   }
-  return next;
+  try {
+    return JSON.stringify(next, null, 2);
+  } catch (err) {
+    return stringifyLogArg(next);
+  }
 };
 
 const refreshLoggerPreview = () => {
   if (!loggerPreview) {
     return;
   }
-  const tabUuid = getCurrentTabUuid();
   chrome.runtime.sendMessage({ type: 'get_enabled' }, (response) => {
     if (chrome.runtime.lastError) {
       loggerPreview.textContent = chrome.runtime.lastError.message;
@@ -519,36 +530,31 @@ const refreshLoggerPreview = () => {
         return;
       }
       const logs = Array.isArray(items[logsKey]) ? items[logsKey] : [];
-      const filteredLogs = tabUuid
-        ? logs.filter((entry) => entry && entry.tab_uuid === tabUuid)
-        : [];
       if (loggerPreviewCount) {
-        loggerPreviewCount.textContent = String(filteredLogs.length);
+        loggerPreviewCount.textContent = String(logs.length);
       }
-      if (filteredLogs.length === 0) {
-        loggerPreview.textContent = tabUuid
-          ? 'No logs yet for this tab.'
-          : 'No logs yet for this tab.';
+      if (loggerToggleButton) {
+        const hasOverflow = logs.length > LOGGER_PREVIEW_LIMIT;
+        loggerToggleButton.disabled = !hasOverflow;
+        if (!hasOverflow) {
+          loggerShowAll = false;
+        }
+        loggerToggleButton.textContent = loggerShowAll
+          ? `Show first ${LOGGER_PREVIEW_LIMIT}`
+          : 'Show all';
+      }
+      if (logs.length === 0) {
+        loggerPreview.textContent = 'No logs yet.';
         return;
       }
-      const startIndex = Math.max(
-        0,
-        filteredLogs.length - LOGGER_PREVIEW_LIMIT
-      );
-      const slice = filteredLogs
-        .slice(startIndex)
-        .map((entry) => transformLogEntryForPreview(entry));
-      const pad = String(filteredLogs.length).length;
+      const startIndex = 0;
+      const slice = loggerShowAll ? logs : logs.slice(0, LOGGER_PREVIEW_LIMIT);
+      const pad = String(logs.length).length;
       let rawText = '';
       const formatted = [];
       slice.forEach((entry, index) => {
         const logNumber = String(startIndex + index + 1).padStart(pad, ' ');
-        let prettyEntry = '';
-        try {
-          prettyEntry = JSON.stringify(entry, null, 2);
-        } catch (err) {
-          prettyEntry = stringifyLogArg(entry);
-        }
+        const prettyEntry = formatLogEntryForPreview(entry);
         if (rawText) {
           rawText += '\n\n';
         }
@@ -1018,14 +1024,19 @@ const buildCaseFile = (callback) => {
       const sessionMeta = items[metaKey] || null;
       const sessionLogs = Array.isArray(items[logsKey]) ? items[logsKey] : [];
       const redactedLogs = redactUrls
-        ? sessionLogs.map((entry) => ({
-            ...entry,
-            url: entry.url ? '[redacted]' : entry.url,
-            console:
-              entry.console && entry.console.url
-                ? { ...entry.console, url: '[redacted]' }
-                : entry.console,
-          }))
+        ? sessionLogs.map((entry) => {
+            if (!entry || typeof entry !== 'object') {
+              return entry;
+            }
+            return {
+              ...entry,
+              url: entry.url ? '[redacted]' : entry.url,
+              console:
+                entry.console && entry.console.url
+                  ? { ...entry.console, url: '[redacted]' }
+                  : entry.console,
+            };
+          })
         : sessionLogs;
       const caseFile = {
         generated_at: generatedAt,
@@ -1199,6 +1210,9 @@ const transformCaseFileForPreview = (caseFile) => {
     return caseFile;
   }
   const previewLogs = logger.logs.map((entry) => {
+    if (typeof entry === 'string') {
+      return parseJsonString(entry);
+    }
     if (!entry || typeof entry !== 'object') {
       return entry;
     }
@@ -1808,6 +1822,12 @@ if (loggerCopyButton) {
       .catch(() => {
         setCopyState(loggerCopyButton, false);
       });
+  });
+}
+if (loggerToggleButton) {
+  loggerToggleButton.addEventListener('click', () => {
+    loggerShowAll = !loggerShowAll;
+    refreshLoggerPreview();
   });
 }
 if (exportCopyButton) {

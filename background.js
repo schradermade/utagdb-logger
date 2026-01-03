@@ -139,35 +139,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       notifyActiveTabEnabled(true);
       const sessionId = generateSessionId(filename);
       currentSessionId = sessionId;
-      currentCount = 1;
+      currentCount = 0;
       chrome.storage.local.set(
         {
           [ENABLED_KEY]: true,
           [SESSION_KEY]: sessionId,
           [FILENAME_KEY]: filename,
-          [COUNT_KEY]: 1,
+          [COUNT_KEY]: 0,
           [LAST_SESSION_KEY]: sessionId,
         },
         () => {
-          const startEntry = {
-            source: 'tealium-extension-session',
-            event: 'start - turned extension on',
-            captured_at: new Date().toISOString(),
-            session_id: sessionId,
-            session_name: filename || undefined,
-          };
+          const startedAt = new Date().toISOString();
           const sessionMetaKey = getSessionMetaKey(sessionId);
           chrome.storage.local.set(
             {
               [sessionMetaKey]: {
                 session_id: sessionId,
                 session_name: filename || null,
-                started_at: startEntry.captured_at,
+                started_at: startedAt,
                 ended_at: null,
               },
             },
             () => {
-              enqueueLogWrite(sessionId, startEntry);
               sendResponse({ ok: true });
             }
           );
@@ -182,16 +175,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       (items) => {
         const sessionId = items[SESSION_KEY];
         const storedFilename = items[FILENAME_KEY];
-        const nextCount = (currentCount || 0) + 1;
-        currentCount = nextCount;
-        chrome.storage.local.set({ [COUNT_KEY]: nextCount }, () => {});
-        const endEntry = {
-          source: 'tealium-extension-session',
-          event: 'end - turned extension off',
-          captured_at: new Date().toISOString(),
-          session_id: sessionId,
-          session_name: storedFilename || undefined,
-        };
+        const endedAt = new Date().toISOString();
         chrome.storage.local.set(
           {
             [ENABLED_KEY]: false,
@@ -210,11 +194,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     ...meta,
                     session_id: sessionId || meta.session_id,
                     session_name: storedFilename || meta.session_name || null,
-                    ended_at: endEntry.captured_at,
+                    ended_at: endedAt,
                   },
                 },
                 () => {
-                  enqueueLogWrite(sessionId, endEntry);
                   sendResponse({ ok: true });
                 }
               );
@@ -437,23 +420,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (!items[ENABLED_KEY]) {
           return;
         }
-      if (currentSessionId !== items[SESSION_KEY]) {
-        currentSessionId = items[SESSION_KEY];
-        currentCount = items[COUNT_KEY] || 0;
-      }
+        if (currentSessionId !== items[SESSION_KEY]) {
+          currentSessionId = items[SESSION_KEY];
+          currentCount = items[COUNT_KEY] || 0;
+        }
         currentCount = (currentCount || 0) + 1;
         chrome.storage.local.set({ [COUNT_KEY]: currentCount }, () => {});
-        const logEntry = {
-          source: 'tealium-extension-console',
-          url: (sender.tab && sender.tab.url) || '',
-          captured_at: new Date().toISOString(),
-          session_id: items[SESSION_KEY],
-          session_name: items[FILENAME_KEY] || undefined,
-          tab_uuid: message.payload && message.payload.tab_uuid
-            ? message.payload.tab_uuid
-            : null,
-          console: message.payload || {},
-        };
+        const logEntry = (() => {
+          const args =
+            message.payload && Array.isArray(message.payload.args)
+              ? message.payload.args
+              : [];
+          if (args.length === 0) {
+            return '';
+          }
+          if (args.length === 1) {
+            return String(args[0]);
+          }
+          return args.map((arg) => String(arg)).join(' ');
+        })();
         enqueueLogWrite(items[SESSION_KEY], logEntry);
       }
     );

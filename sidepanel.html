@@ -535,11 +535,30 @@
         justify-content: space-between;
         margin-bottom: 8px;
       }
+      .logger-toolbar-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
       .iq-preview-label {
         font-size: 12px;
         color: #cfcfcf;
         text-transform: lowercase;
         letter-spacing: 0.3px;
+      }
+      .logger-toggle {
+        border: 1px solid #2f2f2f;
+        background: #151515;
+        color: #cfcfcf;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .logger-toggle:disabled {
+        opacity: 0.5;
+        cursor: default;
       }
       .iq-copy {
         background: transparent;
@@ -1091,24 +1110,29 @@
             <div class="iq-preview-shell">
               <div class="iq-preview-toolbar">
                 <span class="iq-preview-label">json</span>
-                <button id="logger-copy" class="iq-copy" type="button">
-                  <span class="iq-copy-icon" aria-hidden="true">
-                    <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                      <mask id="copy-cutout-logger" maskUnits="userSpaceOnUse">
-                        <rect x="0" y="0" width="20" height="20" fill="white"></rect>
-                        <rect x="6" y="6" width="11" height="11" rx="2" fill="black"></rect>
-                      </mask>
-                      <rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" mask="url(#copy-cutout-logger)"></rect>
-                      <rect x="6.5" y="6.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></rect>
-                    </svg>
-                  </span>
-                  <span class="iq-check" aria-hidden="true">
-                    <svg viewBox="0 0 12 10" aria-hidden="true" focusable="false">
-                      <path d="M1 5.5 L4.5 9 L11 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"></path>
-                    </svg>
-                  </span>
-                  <span class="iq-copy-text">Copy</span>
-                </button>
+                <div class="logger-toolbar-actions">
+                  <button id="logger-toggle" class="logger-toggle" type="button">
+                    Show all
+                  </button>
+                  <button id="logger-copy" class="iq-copy" type="button">
+                    <span class="iq-copy-icon" aria-hidden="true">
+                      <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                        <mask id="copy-cutout-logger" maskUnits="userSpaceOnUse">
+                          <rect x="0" y="0" width="20" height="20" fill="white"></rect>
+                          <rect x="6" y="6" width="11" height="11" rx="2" fill="black"></rect>
+                        </mask>
+                        <rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" mask="url(#copy-cutout-logger)"></rect>
+                        <rect x="6.5" y="6.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></rect>
+                      </svg>
+                    </span>
+                    <span class="iq-check" aria-hidden="true">
+                      <svg viewBox="0 0 12 10" aria-hidden="true" focusable="false">
+                        <path d="M1 5.5 L4.5 9 L11 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"></path>
+                      </svg>
+                    </span>
+                    <span class="iq-copy-text">Copy</span>
+                  </button>
+                </div>
               </div>
               <pre id="logger-preview" class="storage-value logger-preview"></pre>
             </div>
