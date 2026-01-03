@@ -1449,7 +1449,12 @@ function refreshExportPreview() {
     exportStatus.textContent = `Preview updated at ${new Date().toLocaleTimeString()}`;
     if (exportSize) {
       const bytes = new TextEncoder().encode(exportCaseFileText).length;
-      exportSize.textContent = `Estimated size: ${bytes} bytes`;
+      if (bytes > 1000) {
+        const mb = bytes / (1024 * 1024);
+        exportSize.textContent = `Estimated size: ${mb.toFixed(2)} MB`;
+      } else {
+        exportSize.textContent = `Estimated size: ${bytes} bytes`;
+      }
     }
   });
 }
