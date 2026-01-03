@@ -661,6 +661,23 @@ const renderPreviewLines = (previewEl, text) => {
   return lines.length;
 };
 
+const formatBytes = (bytes) => {
+  if (!Number.isFinite(bytes)) {
+    return '';
+  }
+  if (bytes < 1024) {
+    return `${bytes} bytes`;
+  }
+  const units = ['KB', 'MB', 'GB'];
+  let size = bytes / 1024;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return `${size.toFixed(2)} ${units[unitIndex]}`;
+};
+
 const renderCaseFilePreviewWithLogNumbers = (previewEl, caseFile) => {
   if (!previewEl) {
     return;
@@ -1393,7 +1410,8 @@ const renderRecentExports = (items) => {
     title.textContent = item.filename || 'case-file.json';
     const meta = document.createElement('div');
     meta.className = 'recent-meta';
-    meta.textContent = `${item.timestamp} • ${item.size} bytes`;
+    const sizeText = formatBytes(item.size);
+    meta.textContent = `${item.timestamp} • ${sizeText}`;
     let url = null;
     if (item.sourceUrl) {
       url = document.createElement('div');
@@ -1561,12 +1579,7 @@ function refreshExportPreview() {
     exportStatus.textContent = `Preview updated at ${new Date().toLocaleTimeString()}`;
     if (exportSize) {
       const bytes = new TextEncoder().encode(exportCaseFileText).length;
-      if (bytes > 1000) {
-        const mb = bytes / (1024 * 1024);
-        exportSize.textContent = `Estimated size: ${mb.toFixed(2)} MB`;
-      } else {
-        exportSize.textContent = `Estimated size: ${bytes} bytes`;
-      }
+      exportSize.textContent = `Estimated size: ${formatBytes(bytes)}`;
     }
   });
 }
