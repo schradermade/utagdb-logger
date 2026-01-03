@@ -251,6 +251,38 @@ const getActiveTabInfo = (callback) => {
   });
 };
 
+const requestConsentSnapshotDirect = (tabId, callback) => {
+  if (!tabId) {
+    callback({ ok: false, error: 'No active tab' });
+    return;
+  }
+  const requestSnapshot = () => {
+    chrome.tabs.sendMessage(tabId, { type: 'get_consent_status' }, (response) => {
+      if (chrome.runtime.lastError) {
+        callback({ ok: false, error: chrome.runtime.lastError.message });
+        return;
+      }
+      callback(response || { ok: false, error: 'No response' });
+    });
+  };
+  chrome.tabs.sendMessage(tabId, { type: 'get_consent_status' }, () => {
+    if (chrome.runtime.lastError) {
+      chrome.scripting.executeScript(
+        { target: { tabId }, files: ['content.js'] },
+        () => {
+          if (chrome.runtime.lastError) {
+            callback({ ok: false, error: chrome.runtime.lastError.message });
+            return;
+          }
+          requestSnapshot();
+        }
+      );
+      return;
+    }
+    requestSnapshot();
+  });
+};
+
 const getActiveTabUrl = () => {
   try {
     if (window && window.lastActiveTabUrl) {
@@ -464,7 +496,7 @@ const LOGGER_PREVIEW_LIMIT = 200;
 let loggerPreviewRawText = '';
 let iqPreviewRawText = '';
 const EXPORT_HISTORY_KEY = 'exportHistory';
-const EXPORT_HISTORY_LIMIT = 5;
+const EXPORT_HISTORY_LIMIT = 3;
 const IQ_RECENT_KEY = 'iqRecentInputs';
 const IQ_RECENT_LIMIT = 5;
 const pendingExportDownloads = new Map();
@@ -559,6 +591,23 @@ sectionToggles.forEach((button) => {
 });
 
 clearEphemeralStorage();
+
+if (storageLocal) {
+  storageLocal.get([EXPORT_HISTORY_KEY], (items) => {
+    const history = Array.isArray(items[EXPORT_HISTORY_KEY])
+      ? items[EXPORT_HISTORY_KEY]
+      : [];
+    if (history.length <= EXPORT_HISTORY_LIMIT) {
+      return;
+    }
+    storageLocal.set(
+      { [EXPORT_HISTORY_KEY]: history.slice(0, EXPORT_HISTORY_LIMIT) },
+      () => {
+        loadRecentExports();
+      }
+    );
+  });
+}
 
 
 const normalizeValue = (value) => {
@@ -676,6 +725,23 @@ const formatBytes = (bytes) => {
     unitIndex += 1;
   }
   return `${size.toFixed(2)} ${units[unitIndex]}`;
+};
+
+const getSecondLevelDomain = (rawUrl) => {
+  if (!rawUrl || typeof rawUrl !== 'string') {
+    return '';
+  }
+  try {
+    const url = new URL(rawUrl);
+    const host = url.hostname || '';
+    const parts = host.split('.').filter(Boolean);
+    if (parts.length >= 2) {
+      return parts.slice(-2).join('.');
+    }
+    return host;
+  } catch (err) {
+    return '';
+  }
 };
 
 const renderCaseFilePreviewWithLogNumbers = (previewEl, caseFile) => {
@@ -1413,10 +1479,29 @@ const renderRecentExports = (items) => {
     const sizeText = formatBytes(item.size);
     meta.textContent = `${item.timestamp} • ${sizeText}`;
     let url = null;
-    if (item.sourceUrl) {
-      url = document.createElement('div');
-      url.className = 'recent-url';
-      url.textContent = item.sourceUrl;
+    const sourceUrls = Array.isArray(item.sourceUrls)
+      ? item.sourceUrls
+      : item.sourceUrl
+      ? [{ label: 'Source', url: item.sourceUrl }]
+      : [];
+    if (sourceUrls.length > 0) {
+      sourceUrls.forEach((entry) => {
+        const box = document.createElement('div');
+        box.className = 'recent-url';
+        const line = document.createElement('div');
+        line.className = 'recent-url-line';
+        line.textContent = `${entry.label}: ${entry.url}`;
+        box.appendChild(line);
+        if (!url) {
+          url = document.createElement('div');
+          url.className = 'recent-url-list';
+          const title = document.createElement('div');
+          title.className = 'recent-url-title';
+          title.textContent = 'Observed URLs';
+          url.appendChild(title);
+        }
+        url.appendChild(box);
+      });
     }
     const tags = document.createElement('div');
     tags.className = 'recent-tags';
@@ -1426,37 +1511,12 @@ const renderRecentExports = (items) => {
       tag.textContent = section;
       tags.appendChild(tag);
     });
-    const actions = document.createElement('div');
-    actions.className = 'storage-controls recent-actions';
-    const download = document.createElement('button');
-    download.className = 'storage-button';
-    download.type = 'button';
-    download.textContent = 'Download';
-    download.addEventListener('click', () => {
-      if (!item.payload) {
-        return;
-      }
-      const blob = new Blob([item.payload], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      chrome.downloads.download(
-        {
-          url,
-          filename: item.filename || 'case-file.json',
-          saveAs: true,
-        },
-        () => {
-          URL.revokeObjectURL(url);
-        }
-      );
-    });
-    actions.appendChild(download);
     entry.appendChild(title);
     entry.appendChild(meta);
     if (url) {
       entry.appendChild(url);
     }
     entry.appendChild(tags);
-    entry.appendChild(actions);
     recentList.appendChild(entry);
   });
 };
@@ -1480,7 +1540,7 @@ const loadRecentExports = () => {
   });
 };
 
-const saveRecentExport = (payload, filename, size, sections, sourceUrl) => {
+const saveRecentExport = (filename, size, sections, sourceUrls) => {
   if (!storageLocal) {
     return;
   }
@@ -1494,8 +1554,7 @@ const saveRecentExport = (payload, filename, size, sections, sourceUrl) => {
         size,
         sections,
         timestamp: new Date().toLocaleString(),
-        payload,
-        sourceUrl,
+        sourceUrls,
       },
       ...history,
     ].slice(0, EXPORT_HISTORY_LIMIT);
@@ -1503,22 +1562,32 @@ const saveRecentExport = (payload, filename, size, sections, sourceUrl) => {
   });
 };
 
-const getSourceUrlFromCaseFile = (caseFile) => {
+const getSourceUrlsFromCaseFile = (caseFile) => {
+  const urls = [];
   if (!caseFile || typeof caseFile !== 'object') {
-    return null;
+    return urls;
+  }
+  const loggerUrl =
+    caseFile.utagdb_logger &&
+    caseFile.utagdb_logger.session &&
+    caseFile.utagdb_logger.session.observed_url
+      ? caseFile.utagdb_logger.session.observed_url
+      : null;
+  if (loggerUrl) {
+    urls.push({ label: 'utag.DB', url: loggerUrl });
   }
   const consentSnapshots =
     caseFile.consent_monitor && Array.isArray(caseFile.consent_monitor.snapshots)
       ? caseFile.consent_monitor.snapshots
       : [];
-  if (consentSnapshots.length > 0 && consentSnapshots[0].url) {
-    return consentSnapshots[0].url;
+  if (consentSnapshots.length > 0 && consentSnapshots[0].observed_url) {
+    urls.push({ label: 'Consent', url: consentSnapshots[0].observed_url });
   }
   const iqSnapshot = caseFile.iq_profile && caseFile.iq_profile.snapshot;
-  if (iqSnapshot && iqSnapshot.url) {
-    return iqSnapshot.url;
+  if (iqSnapshot && iqSnapshot.observed_url) {
+    urls.push({ label: 'iQ', url: iqSnapshot.observed_url });
   }
-  return null;
+  return urls;
 };
 
 const transformCaseFileForPreview = (caseFile) => {
@@ -1578,53 +1647,64 @@ function refreshExportPreview() {
   }
     exportStatus.textContent = `Preview updated at ${new Date().toLocaleTimeString()}`;
     if (exportSize) {
-      const bytes = new TextEncoder().encode(exportCaseFileText).length;
-      exportSize.textContent = `Estimated size: ${formatBytes(bytes)}`;
+      const blob = new Blob([exportCaseFileText], { type: 'application/json' });
+      exportSize.textContent = `Estimated size: ${formatBytes(blob.size)}`;
     }
   });
 }
 
 const exportCaseFile = () => {
-  if (!exportCaseFileText) {
-    refreshExportPreview();
-    return;
-  }
-  const timestamp = new Date().toISOString();
-  const blob = new Blob([exportCaseFileText], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const filename = formatCaseFileName(timestamp);
-  const sections = [];
-  if (!exportIncludeLogger || exportIncludeLogger.checked) {
-    sections.push('utag.DB');
-  }
-  if (!exportIncludeConsent || exportIncludeConsent.checked) {
-    sections.push('Consent');
-  }
-  if (!exportIncludeIq || exportIncludeIq.checked) {
-    sections.push('iQ Profile');
-  }
-  const size = new TextEncoder().encode(exportCaseFileText).length;
-  const sourceUrl = getSourceUrlFromCaseFile(exportCaseFileObject);
-  chrome.downloads.download(
-    {
-      url,
-      filename,
-      saveAs: true,
-    },
-    (downloadId) => {
-      URL.revokeObjectURL(url);
-      if (!downloadId) {
-        return;
+  buildCaseFile((caseFile, error) => {
+    if (error || !caseFile) {
+      if (exportStatus) {
+        exportStatus.textContent = error || 'Failed to build case file.';
       }
-      pendingExportDownloads.set(downloadId, {
-        payload: exportCaseFileText,
-        filename,
-        size,
-        sections,
-        sourceUrl,
-      });
+      return;
     }
-  );
+    exportCaseFileObject = caseFile;
+    exportCaseFileText = JSON.stringify(caseFile, null, 2);
+    const timestamp = new Date().toISOString();
+    const blob = new Blob([exportCaseFileText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const filename = formatCaseFileName(timestamp);
+    const sections = [];
+    if (!exportIncludeLogger || exportIncludeLogger.checked) {
+      sections.push('utag.DB');
+    }
+    if (!exportIncludeConsent || exportIncludeConsent.checked) {
+      sections.push('Consent');
+    }
+    if (!exportIncludeIq || exportIncludeIq.checked) {
+      sections.push('iQ Profile');
+    }
+    const size = blob.size;
+    const sourceUrls = getSourceUrlsFromCaseFile(exportCaseFileObject);
+    if (exportSize) {
+      exportSize.textContent = `Estimated size: ${formatBytes(size)}`;
+    }
+    chrome.downloads.download(
+      {
+        url,
+        filename,
+        saveAs: true,
+      },
+      (downloadId) => {
+        URL.revokeObjectURL(url);
+        if (!downloadId) {
+          return;
+        }
+        pendingExportDownloads.set(downloadId, {
+          filename,
+          size,
+          sections,
+          sourceUrls,
+          saved: true,
+        });
+        saveRecentExport(filename, size, sections, sourceUrls);
+        loadRecentExports();
+      }
+    );
+  });
 };
 
 if (exportRefreshButton) {
@@ -2087,10 +2167,44 @@ function fetchConsentSnapshot(options = {}) {
     }
     chrome.runtime.sendMessage({ type: 'get_consent_status', tabId }, (response) => {
       if (chrome.runtime.lastError) {
-        if (!silent) {
-          consentStatus.textContent = chrome.runtime.lastError.message;
-        }
-        consentRefreshInFlight = false;
+        requestConsentSnapshotDirect(tabId, (directResponse) => {
+          if (!directResponse || !directResponse.ok) {
+            if (!silent) {
+              consentStatus.textContent = directResponse && directResponse.error
+                ? directResponse.error
+                : chrome.runtime.lastError.message;
+            }
+            consentRefreshInFlight = false;
+            return;
+          }
+          lastConsentRefreshAt = Date.now();
+          consentRefreshInFlight = false;
+          const payload = directResponse.data || {};
+          const tabUuid = payload.tab_uuid || tabIdToUuid.get(tabId) || `tab-${tabId}`;
+          tabIdToUuid.set(tabId, tabUuid);
+          const coreSignature = buildConsentCoreSignature(payload);
+          const prevCoreSignature = consentCoreSignaturesByTab.get(tabUuid);
+          if (
+            silent &&
+            !forceRender &&
+            prevCoreSignature &&
+            coreSignature === prevCoreSignature
+          ) {
+            if (consentStatus && consentStatus.textContent) {
+              consentStatus.textContent = '';
+            }
+            consentSnapshotsByTab.set(tabUuid, payload);
+            saveSessionSnapshot(getSessionKeys(tabUuid).consent, payload);
+            return;
+          }
+          consentCoreSignaturesByTab.set(tabUuid, coreSignature);
+          consentStatus.textContent = '';
+          consentSnapshotsByTab.set(tabUuid, payload);
+          saveSessionSnapshot(getSessionKeys(tabUuid).consent, payload);
+          if (tabId === currentTabId) {
+            applyConsentSnapshot(payload);
+          }
+        });
         return;
       }
       if (!response || !response.ok) {
@@ -2364,12 +2478,14 @@ if (chrome.downloads && chrome.downloads.onChanged) {
       return;
     }
     pendingExportDownloads.delete(delta.id);
+    if (pending.saved) {
+      return;
+    }
     saveRecentExport(
-      pending.payload,
       pending.filename,
       pending.size,
       pending.sections,
-      pending.sourceUrl
+      pending.sourceUrls
     );
     loadRecentExports();
   });
