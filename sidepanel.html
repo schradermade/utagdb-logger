@@ -729,6 +729,16 @@
         color: #b6b6b6;
         margin-bottom: 6px;
       }
+      #export-view .storage-header {
+        align-items: center;
+        margin-bottom: 0;
+      }
+      #export-view .storage-header .storage-button {
+        margin-top: 12px;
+      }
+      #export-view .storage-group {
+        margin-top: 8px;
+      }
       .storage-list {
         border: 1px solid #262626;
         background: #121212;
@@ -785,10 +795,58 @@
         flex-wrap: wrap;
         gap: 8px 12px;
         align-items: center;
-        margin-top: 10px;
-        margin-bottom: 10px;
+        margin: 0;
         font-size: 12px;
         color: #cfcfcf;
+      }
+      .export-sections {
+        display: grid;
+        gap: 16px;
+        margin-top: 10px;
+        margin-bottom: 14px;
+      }
+      .export-section {
+        gap: 12px;
+      }
+      .export-option-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+      }
+      .export-subtitle {
+        font-size: 11px;
+        font-weight: 600;
+        color: #9c9c9c;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      .export-option-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+      }
+      .export-status-inline {
+        font-size: 12px;
+        color: #b6b6b6;
+        margin-top: -6px;
+        margin-bottom: 0;
+        padding-left: 6px;
+        line-height: 1.2;
+      }
+      .export-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .export-actions .storage-controls {
+        margin-bottom: 0;
+      }
+      .export-status {
+        margin-top: 0;
+      }
+      .export-status.is-hidden {
+        display: none;
       }
       .export-option {
         display: flex;
@@ -823,9 +881,12 @@
         transform: scale(1);
       }
       .export-size {
-        font-size: 11px;
+        font-size: 12px;
         color: #b6b6b6;
-        margin-top: 8px;
+        margin-top: 4px;
+        margin-bottom: 6px;
+        padding-left: 6px;
+        line-height: 1.2;
       }
       #consent-signal-list .storage-value {
         background: #1c1c1c;
@@ -1487,38 +1548,59 @@
       </div>
 
       <div id="export-view" class="feature-section" role="tabpanel" aria-hidden="true">
-        <div class="export-options">
-          <label class="export-option">
-            <input id="export-include-logger" type="checkbox" checked />
-            <span>Include utag.DB</span>
-          </label>
-          <label class="export-option">
-            <input id="export-include-consent" type="checkbox" checked />
-            <span>Include Consent</span>
-          </label>
-          <label class="export-option">
-            <input id="export-include-iq" type="checkbox" checked />
-            <span>Include iQ Profile</span>
-          </label>
-          <label class="export-option">
-            <input id="export-redact-urls" type="checkbox" />
-            <span>Redact URLs</span>
-          </label>
-          <label class="export-option">
-            <input id="export-redact-signals" type="checkbox" />
-            <span>Redact signal values</span>
-          </label>
+        <div class="export-sections">
+          <div class="panel-section export-section">
+            <div class="panel-section-title"><span>Case File</span><span>Contents</span></div>
+            <div class="export-options">
+              <div class="export-option-group">
+                <div class="export-subtitle">Include</div>
+                <div class="export-option-grid">
+                  <label class="export-option">
+                    <input id="export-include-logger" type="checkbox" checked />
+                    <span>Include utag.DB</span>
+                  </label>
+                  <label class="export-option">
+                    <input id="export-include-consent" type="checkbox" checked />
+                    <span>Include Consent</span>
+                  </label>
+                  <label class="export-option">
+                    <input id="export-include-iq" type="checkbox" checked />
+                    <span>Include iQ Profile</span>
+                  </label>
+                </div>
+              </div>
+              <div class="export-option-group">
+                <div class="export-subtitle">Redact</div>
+                <div class="export-option-grid">
+                  <label class="export-option">
+                    <input id="export-redact-urls" type="checkbox" />
+                    <span>Redact URLs</span>
+                  </label>
+                  <label class="export-option">
+                    <input id="export-redact-signals" type="checkbox" />
+                    <span>Redact signal values</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel-section export-section">
+            <div class="panel-section-title"><span>Export</span><span>Actions</span></div>
+            <div class="export-actions">
+              <div class="storage-controls">
+                <button id="export-download" class="storage-button" type="button">Export Case File</button>
+              </div>
+              <div id="export-status" class="status export-status is-hidden">No preview yet.</div>
+            </div>
+          </div>
         </div>
-        <div class="storage-controls">
-          <button id="export-refresh" class="storage-button" type="button">Refresh Preview</button>
-          <button id="export-download" class="storage-button" type="button">Export Case File</button>
-        </div>
-        <div id="export-status" class="status">No preview yet.</div>
         <div class="storage-group">
           <div class="storage-header">
             <span>Case File Preview</span>
-            <span id="export-size" class="export-size"></span>
+            <button id="export-refresh" class="storage-button" type="button">Refresh Preview</button>
           </div>
+          <div id="export-status-inline" class="export-status-inline">No preview yet.</div>
+          <div id="export-size" class="export-size"></div>
           <div class="iq-preview-shell">
             <div class="iq-preview-toolbar">
               <span class="iq-preview-label">json</span>

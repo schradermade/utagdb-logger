@@ -1641,20 +1641,29 @@ const transformCaseFileForPreview = (caseFile) => {
 };
 
 function refreshExportPreview() {
-  if (!exportStatus || !exportPreview) {
+  const exportStatusInline = document.getElementById('export-status-inline');
+  if (!exportPreview) {
     return;
   }
-  exportStatus.textContent = 'Building case file...';
+  if (exportStatusInline) {
+    exportStatusInline.textContent = 'Building case file...';
+  } else if (exportStatus) {
+    exportStatus.textContent = 'Building case file...';
+  }
   buildCaseFile((caseFile, error) => {
     if (error) {
-      exportStatus.textContent = error;
-    exportPreview.textContent = '';
-    exportCaseFileText = '';
-    if (exportSize) {
-      exportSize.textContent = '';
+      if (exportStatusInline) {
+        exportStatusInline.textContent = error;
+      } else if (exportStatus) {
+        exportStatus.textContent = error;
+      }
+      exportPreview.textContent = '';
+      exportCaseFileText = '';
+      if (exportSize) {
+        exportSize.textContent = '';
+      }
+      return;
     }
-    return;
-  }
     exportCaseFileObject = caseFile;
     exportCaseFileText = JSON.stringify(caseFile, null, 2);
     const previewCaseFile = transformCaseFileForPreview(caseFile);
@@ -1662,7 +1671,12 @@ function refreshExportPreview() {
   if (exportCopyButton) {
     exportCopyButton.dataset.raw = exportCaseFileText;
   }
-    exportStatus.textContent = `Preview updated at ${new Date().toLocaleTimeString()}`;
+    const previewText = `Preview updated at ${new Date().toLocaleTimeString()}`;
+    if (exportStatusInline) {
+      exportStatusInline.textContent = previewText;
+    } else if (exportStatus) {
+      exportStatus.textContent = previewText;
+    }
     if (exportSize) {
       const blob = new Blob([exportCaseFileText], { type: 'application/json' });
       exportSize.textContent = `Estimated size: ${formatBytes(blob.size)}`;
