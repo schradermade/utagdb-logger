@@ -21,6 +21,8 @@ const COUNT_KEY = 'sessionLogCount';
 const LAST_SESSION_KEY = 'lastSessionId';
 const LOGS_KEY_PREFIX = 'utagdbLogs:session:';
 const SESSION_META_PREFIX = 'utagdbSession:';
+const STORAGE_TRIM_THRESHOLD_BYTES = 7 * 1024 * 1024;
+const STORAGE_TRIM_TARGET_BYTES = 6 * 1024 * 1024;
 let currentSessionId = null;
 let currentCount = null;
 const consoleSendQueues = new Map();
@@ -32,11 +34,76 @@ const getSessionLogKey = (sessionId) =>
 const getSessionMetaKey = (sessionId) =>
   `${SESSION_META_PREFIX}${sessionId || 'no-session'}`;
 
+const ensureStorageUnderLimit = (protectedSessionIds = []) =>
+  new Promise((resolve) => {
+    chrome.storage.local.getBytesInUse(null, (bytes) => {
+      if (bytes <= STORAGE_TRIM_THRESHOLD_BYTES) {
+        resolve();
+        return;
+      }
+      chrome.storage.local.get(null, (items) => {
+        const protectedIds = new Set(
+          protectedSessionIds.filter((id) => typeof id === 'string' && id)
+        );
+        const sessions = Object.keys(items || {})
+          .filter((key) => key.startsWith(LOGS_KEY_PREFIX))
+          .map((key) => {
+            const sessionId = key.slice(LOGS_KEY_PREFIX.length) || 'no-session';
+            const metaKey = getSessionMetaKey(sessionId);
+            const meta = items[metaKey] || {};
+            const startedAt = meta.started_at || meta.ended_at || '';
+            return {
+              sessionId,
+              logKey: key,
+              metaKey,
+              startedAt,
+              hasMeta: Boolean(items[metaKey]),
+            };
+          })
+          .filter((entry) => !protectedIds.has(entry.sessionId))
+          .sort((left, right) =>
+            String(left.startedAt).localeCompare(String(right.startedAt))
+          );
+
+        if (sessions.length === 0) {
+          resolve();
+          return;
+        }
+
+        const removeNext = () => {
+          chrome.storage.local.getBytesInUse(null, (nextBytes) => {
+            if (nextBytes <= STORAGE_TRIM_TARGET_BYTES) {
+              resolve();
+              return;
+            }
+            const next = sessions.shift();
+            if (!next) {
+              resolve();
+              return;
+            }
+            const keys = [next.logKey];
+            if (next.hasMeta) {
+              keys.push(next.metaKey);
+            }
+            chrome.storage.local.remove(keys, () => {
+              removeNext();
+            });
+          });
+        };
+
+        removeNext();
+      });
+    });
+  });
+
 const enqueueLogWrite = (sessionId, entry) => {
   const key = getSessionLogKey(sessionId);
   const prev = logWriteQueues.get(key) || Promise.resolve();
   const next = prev
     .catch(() => {})
+    .then(() =>
+      ensureStorageUnderLimit([sessionId, currentSessionId])
+    )
     .then(
       () =>
         new Promise((resolve) => {
