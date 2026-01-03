@@ -283,6 +283,38 @@ const requestConsentSnapshotDirect = (tabId, callback) => {
   });
 };
 
+const sendMessageWithInjection = (tabId, message, callback) => {
+  if (!tabId) {
+    callback({ ok: false, error: 'No active tab' });
+    return;
+  }
+  const send = () => {
+    chrome.tabs.sendMessage(tabId, message, (response) => {
+      if (chrome.runtime.lastError) {
+        callback({ ok: false, error: chrome.runtime.lastError.message });
+        return;
+      }
+      callback(response || { ok: false, error: 'No response' });
+    });
+  };
+  chrome.tabs.sendMessage(tabId, message, () => {
+    if (chrome.runtime.lastError) {
+      chrome.scripting.executeScript(
+        { target: { tabId }, files: ['content.js'] },
+        () => {
+          if (chrome.runtime.lastError) {
+            callback({ ok: false, error: chrome.runtime.lastError.message });
+            return;
+          }
+          send();
+        }
+      );
+      return;
+    }
+    send();
+  });
+};
+
 const getActiveTabUrl = () => {
   try {
     if (window && window.lastActiveTabUrl) {
@@ -322,22 +354,15 @@ const refreshUtagdbCookieIndicator = () => {
   if (!utagdbCookieIndicator) {
     return;
   }
-  getActiveTabInfo(({ tabId }) => {
-    if (!tabId) {
+  chrome.runtime.sendMessage({ type: 'get_utagdb_cookie' }, (response) => {
+    if (chrome.runtime.lastError || !response || !response.ok) {
       setUtagdbCookieIndicator(false);
       setUtagdbCookieButtonLabel(false);
       return;
     }
-    chrome.tabs.sendMessage(tabId, { type: 'get_utagdb_cookie' }, (response) => {
-      if (chrome.runtime.lastError) {
-        setUtagdbCookieIndicator(false);
-        setUtagdbCookieButtonLabel(false);
-        return;
-      }
-      const enabled = Boolean(response && response.enabled);
-      setUtagdbCookieIndicator(enabled);
-      setUtagdbCookieButtonLabel(enabled);
-    });
+    const enabled = Boolean(response && response.enabled);
+    setUtagdbCookieIndicator(enabled);
+    setUtagdbCookieButtonLabel(enabled);
   });
 };
 
@@ -345,46 +370,38 @@ const toggleUtagdbCookie = () => {
   if (!utagdbCookieButton) {
     return;
   }
-  getActiveTabInfo(({ tabId }) => {
-    if (!tabId) {
-      setUtagdbCookieStatus('No active tab.', true);
+  chrome.runtime.sendMessage({ type: 'get_utagdb_cookie' }, (status) => {
+    if (chrome.runtime.lastError || !status || !status.ok) {
+      setUtagdbCookieStatus(
+        status && status.error ? status.error : 'Failed to read cookie.',
+        true
+      );
       return;
     }
-    chrome.tabs.sendMessage(tabId, { type: 'get_utagdb_cookie' }, (status) => {
-      if (chrome.runtime.lastError) {
-        setUtagdbCookieStatus(chrome.runtime.lastError.message, true);
-        return;
-      }
-      const isEnabled = Boolean(status && status.enabled);
-      const nextEnabled = !isEnabled;
-      setUtagdbCookieStatus(
-        nextEnabled ? 'Setting utagdb cookie...' : 'Clearing utagdb cookie...',
-        false
-      );
-      chrome.tabs.sendMessage(
-        tabId,
-        { type: 'set_utagdb_cookie', enabled: nextEnabled },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            setUtagdbCookieStatus(chrome.runtime.lastError.message, true);
-            return;
-          }
-          if (!response || !response.ok) {
-            setUtagdbCookieStatus(
-              response && response.error ? response.error : 'Failed to set cookie.',
-              true
-            );
-            return;
-          }
+    const isEnabled = Boolean(status && status.enabled);
+    const nextEnabled = !isEnabled;
+    setUtagdbCookieStatus(
+      nextEnabled ? 'Setting utagdb cookie...' : 'Clearing utagdb cookie...',
+      false
+    );
+    chrome.runtime.sendMessage(
+      { type: 'set_utagdb_cookie', enabled: nextEnabled },
+      (response) => {
+        if (chrome.runtime.lastError || !response || !response.ok) {
           setUtagdbCookieStatus(
-            nextEnabled ? 'utagdb cookie enabled.' : 'utagdb cookie disabled.',
-            false
+            response && response.error ? response.error : 'Failed to set cookie.',
+            true
           );
-          setUtagdbCookieIndicator(nextEnabled);
-          setUtagdbCookieButtonLabel(nextEnabled);
+          return;
         }
-      );
-    });
+        setUtagdbCookieStatus(
+          nextEnabled ? 'utagdb cookie enabled.' : 'utagdb cookie disabled.',
+          false
+        );
+        setUtagdbCookieIndicator(nextEnabled);
+        setUtagdbCookieButtonLabel(nextEnabled);
+      }
+    );
   });
 };
 

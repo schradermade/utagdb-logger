@@ -1220,6 +1220,56 @@ const ENABLED_KEY = 'enabled';
 let hasSentInitialEnabled = false;
 let utagdbOverride = null;
 
+const getUtagdbCookieValues = () => {
+  try {
+    return document.cookie
+      .split(';')
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.startsWith('utagdb='))
+      .map((entry) => entry.split('=').slice(1).join('='));
+  } catch (err) {
+    return [];
+  }
+};
+
+const hasUtagdbCookieEnabled = () =>
+  getUtagdbCookieValues().some(
+    (value) => value && value.toLowerCase() === 'true'
+  );
+
+const clearUtagdbCookie = () => {
+  try {
+    const paths = new Set(['/']);
+    const pathname =
+      typeof location === 'object' && typeof location.pathname === 'string'
+        ? location.pathname
+        : '/';
+    const segments = pathname.split('/').filter(Boolean);
+    let current = '';
+    segments.forEach((segment) => {
+      current += `/${segment}`;
+      paths.add(current);
+    });
+
+    const domains = [];
+    if (typeof location === 'object' && typeof location.hostname === 'string') {
+      domains.push(location.hostname);
+      if (location.hostname.includes('.')) {
+        domains.push(`.${location.hostname}`);
+      }
+    }
+
+    paths.forEach((path) => {
+      document.cookie = `utagdb=; Max-Age=0; path=${path}`;
+      domains.forEach((domain) => {
+        document.cookie = `utagdb=; Max-Age=0; path=${path}; domain=${domain}`;
+      });
+    });
+  } catch (err) {
+    // ignore cookie clearing failures
+  }
+};
+
 const isUtagdbEnabled = () => {
   if (utagdbOverride === true) {
     return true;
@@ -1228,14 +1278,7 @@ const isUtagdbEnabled = () => {
     return false;
   }
   try {
-    const cookieValue = document.cookie
-      .split(';')
-      .map((entry) => entry.trim())
-      .find((entry) => entry.startsWith('utagdb='));
-    const cookieEnabled =
-      cookieValue &&
-      cookieValue.split('=')[1] &&
-      cookieValue.split('=')[1].toLowerCase() === 'true';
+    const cookieEnabled = hasUtagdbCookieEnabled();
     const cfgEnabled =
       window.utag && window.utag.cfg && window.utag.cfg.utagdb === true;
     return Boolean(cookieEnabled || cfgEnabled);
@@ -1367,7 +1410,7 @@ try {
             '*'
           );
           if (enabled) {
-            document.cookie = 'utagdb=true';
+            document.cookie = 'utagdb=true; path=/';
             if (window.utag && window.utag.cfg) {
               window.utag.cfg.utagdb = true;
             }
@@ -1377,7 +1420,7 @@ try {
               // ignore localStorage failures
             }
           } else {
-            document.cookie = 'utagdb=; Max-Age=0; path=/';
+            clearUtagdbCookie();
             if (window.utag && window.utag.cfg) {
               window.utag.cfg.utagdb = false;
             }
@@ -1395,18 +1438,7 @@ try {
       }
       if (message.type === 'get_utagdb_cookie') {
         try {
-          const cookieValue = document.cookie
-            .split(';')
-            .map((entry) => entry.trim())
-            .find((entry) => entry.startsWith('utagdb='));
-          const hasCookie =
-            cookieValue &&
-            cookieValue.split('=')[1] &&
-            cookieValue.split('=')[1].toLowerCase() === 'true';
-          const enabled =
-            hasCookie ||
-            (window.utag && window.utag.cfg && window.utag.cfg.utagdb === true);
-          sendResponse({ ok: true, enabled: Boolean(enabled) });
+          sendResponse({ ok: true, enabled: isUtagdbEnabled() });
         } catch (err) {
           sendResponse({ ok: false, enabled: false });
         }

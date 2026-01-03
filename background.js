@@ -501,6 +501,87 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === 'get_utagdb_cookie' || message.type === 'set_utagdb_cookie') {
+    const targetTabId = Number.isInteger(message.tabId) ? message.tabId : null;
+    const payload =
+      message.type === 'set_utagdb_cookie'
+        ? { type: 'set_utagdb_cookie', enabled: message.enabled !== false }
+        : { type: 'get_utagdb_cookie' };
+    const withTab = (tab) => {
+      if (!tab || !tab.id) {
+        sendResponse({ ok: false, error: 'No active tab' });
+        return;
+      }
+      if (!tab.url || !tab.url.startsWith('http')) {
+        sendResponse({ ok: false, error: 'Unsupported tab URL' });
+        return;
+      }
+      const requestCookie = () => {
+        chrome.tabs.sendMessage(tab.id, payload, (response) => {
+          if (chrome.runtime.lastError) {
+            sendResponse({
+              ok: false,
+              error: chrome.runtime.lastError.message,
+            });
+            return;
+          }
+          sendResponse(response || { ok: false, error: 'No response' });
+        });
+      };
+
+      chrome.tabs.sendMessage(tab.id, payload, () => {
+        if (chrome.runtime.lastError) {
+          chrome.scripting.executeScript(
+            { target: { tabId: tab.id }, files: ['content.js'] },
+            () => {
+              if (chrome.runtime.lastError) {
+                sendResponse({
+                  ok: false,
+                  error: chrome.runtime.lastError.message,
+                });
+                return;
+              }
+              requestCookie();
+            }
+          );
+          return;
+        }
+        requestCookie();
+      });
+    };
+
+    if (targetTabId) {
+      chrome.tabs.get(targetTabId, (tab) => {
+        if (chrome.runtime.lastError) {
+          sendResponse({
+            ok: false,
+            error: chrome.runtime.lastError.message,
+          });
+          return;
+        }
+        withTab(tab);
+      });
+      return true;
+    }
+
+    chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+      if (tabs && tabs.length) {
+        withTab(tabs[0]);
+        return;
+      }
+      chrome.tabs.query({ active: true, currentWindow: true }, (fallbackTabs) => {
+        if (fallbackTabs && fallbackTabs.length) {
+          withTab(fallbackTabs[0]);
+          return;
+        }
+        chrome.tabs.query({ active: true }, (anyTabs) => {
+          withTab(anyTabs[0]);
+        });
+      });
+    });
+    return true;
+  }
+
   if (message.type === 'get_consent_status') {
     const targetTabId = Number.isInteger(message.tabId) ? message.tabId : null;
     const withTab = (tab) => {
