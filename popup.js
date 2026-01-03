@@ -29,7 +29,7 @@ function setStatus(text, isError) {
 function setRecordButton(isOn) {
   recordButton.classList.toggle('recording', isOn);
   if (!stopCooldownActive) {
-    recordLabel.textContent = isOn ? 'Recording - Stop' : 'Start recording';
+    recordLabel.textContent = isOn ? 'Recording - Stop' : 'Start Recording Logs';
   }
 }
 
