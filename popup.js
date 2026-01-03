@@ -1,8 +1,6 @@
 const recordButton = document.getElementById('record');
 const recordLabel = document.getElementById('record-label');
-const filenameField = document.getElementById('filename-field');
 const filenameInput = document.getElementById('filename');
-const filenameError = document.getElementById('filename-error');
 const statusEl = document.getElementById('status');
 const destinationEl = document.getElementById('destination');
 const destinationValueEl = document.getElementById('destination-value');
@@ -141,23 +139,10 @@ const sendUtag = () => {
   });
 };
 
-function setFilenameLock(isLocked) {
-  filenameInput.disabled = isLocked;
-  filenameField.classList.toggle('hidden', isLocked);
-}
-
-function setFilenameError(isVisible) {
-  filenameError.classList.toggle('hidden', !isVisible);
-}
+function setFilenameLock() {}
 
 const setEnabled = (enabled) => {
-  const filename = filenameInput.value.trim();
-  if (enabled && !filename) {
-    setFilenameError(true);
-    setRecordButton(false);
-    return;
-  }
-  setFilenameError(false);
+  const filename = filenameInput ? filenameInput.value.trim() : '';
   chrome.runtime.sendMessage(
     {
       type: 'set_enabled',
@@ -193,10 +178,9 @@ const setEnabled = (enabled) => {
         setSaving(false, null);
         setCompleted(wasRecording, sessionId);
         setCount(false, 0);
-        if (wasRecording) {
+        if (wasRecording && filenameInput) {
           filenameInput.value = '';
         }
-        setFilenameError(false);
         isRecording = false;
       }
       endStopCooldown();

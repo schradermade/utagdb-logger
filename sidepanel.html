@@ -496,6 +496,18 @@
         text-transform: uppercase;
         letter-spacing: 0.6px;
       }
+      .logger-steps {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 6px;
+        font-size: 12px;
+        color: #cfcfcf;
+      }
+      .logger-step-number {
+        color: #9c9c9c;
+        font-weight: 600;
+        margin-right: 6px;
+      }
       .panel-section-body {
         display: flex;
         flex-direction: column;
@@ -1116,11 +1128,11 @@
       <section id="feature-logger" class="feature-section active" role="tabpanel">
         <div class="panel-section">
           <div class="panel-section-title"><span>Session</span><span>Logger</span></div>
-          <label id="filename-field" class="field">
-            <span>Save log as</span>
-            <input id="filename" type="text" placeholder="Enter name" required />
-            <span id="filename-error" class="field-error hidden">Filename is required</span>
-          </label>
+          <div class="logger-steps">
+            <div><span class="logger-step-number">1.</span>Click Start Recording Logs.</div>
+            <div><span class="logger-step-number">2.</span>Trigger utag.DB logs on the page.</div>
+            <div><span class="logger-step-number">3.</span>Click stop when done, then check Logs Preview or Export.</div>
+          </div>
           <button id="record" class="record" type="button">
             <span class="icon" aria-hidden="true"></span>
             <span class="spinner" aria-hidden="true"></span>
