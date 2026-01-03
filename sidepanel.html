@@ -946,6 +946,12 @@
         animation: none;
         transform: none;
       }
+      .record:not(:disabled):not(.cooldown):hover,
+      .record:not(:disabled):not(.cooldown):focus-visible {
+        border-color: #53a76b;
+        box-shadow: 0 0 0 2px rgba(83, 167, 107, 0.35);
+        outline: none;
+      }
       .record:active {
         transform: scale(0.96);
       }
