@@ -499,9 +499,42 @@
       .logger-steps {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 6px;
+        gap: 10px;
         font-size: 12px;
         color: #cfcfcf;
+      }
+      .logger-step {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .logger-step-inline {
+        display: flex;
+        align-items: center;
+      }
+      .logger-step-subaction {
+        padding-left: 18px;
+      }
+      .logger-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+      .logger-cookie-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #505050;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4);
+      }
+      .logger-cookie-indicator.is-on {
+        background: #35b86b;
+        box-shadow: 0 0 6px rgba(53, 184, 107, 0.7);
+      }
+      .logger-cookie-status {
+        font-size: 11px;
+        color: #9c9c9c;
       }
       .logger-step-number {
         color: #9c9c9c;
@@ -1129,9 +1162,21 @@
         <div class="panel-section">
           <div class="panel-section-title"><span>Session</span><span>Logger</span></div>
           <div class="logger-steps">
-            <div><span class="logger-step-number">1.</span>Click Start Recording Logs.</div>
-            <div><span class="logger-step-number">2.</span>Trigger utag.DB logs on the page.</div>
-            <div><span class="logger-step-number">3.</span>Click stop when done, then check Logs Preview or Export.</div>
+            <div class="logger-step">
+              <div class="logger-step-inline">
+                <span class="logger-step-number">1.</span>Enable utagdb Cookie (if needed).
+              </div>
+              <div class="logger-step-subaction">
+                <div class="logger-actions">
+                  <span id="utagdb-cookie-indicator" class="logger-cookie-indicator" aria-hidden="true"></span>
+                  <button id="utagdb-cookie" class="storage-button" type="button">Enable utagdb Cookie</button>
+                  <span id="utagdb-cookie-status" class="logger-cookie-status"></span>
+                </div>
+              </div>
+            </div>
+            <div><span class="logger-step-number">2.</span>Click Start Recording Logs.</div>
+            <div><span class="logger-step-number">3.</span>Trigger utag.DB logs on the page.</div>
+            <div><span class="logger-step-number">4.</span>Click stop when done, then check Logs Preview or Export.</div>
           </div>
           <button id="record" class="record" type="button">
             <span class="icon" aria-hidden="true"></span>

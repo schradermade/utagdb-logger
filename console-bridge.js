@@ -46,6 +46,37 @@
   let dbGeneration = 0;
   let lastGpcValue;
   let gpcInitialized = false;
+  let utagdbOverride = null;
+
+  const isUtagDbEnabled = () => {
+    if (utagdbOverride === true) {
+      return true;
+    }
+    if (utagdbOverride === false) {
+      return false;
+    }
+    try {
+      if (window.utag && window.utag.cfg) {
+        if (window.utag.cfg.utagdb === false) {
+          return false;
+        }
+        if (window.utag.cfg.utagdb === true) {
+          return true;
+        }
+      }
+      const cookieValue = document.cookie
+        .split(';')
+        .map((entry) => entry.trim())
+        .find((entry) => entry.startsWith('utagdb='));
+      return Boolean(
+        cookieValue &&
+          cookieValue.split('=')[1] &&
+          cookieValue.split('=')[1].toLowerCase() === 'true'
+      );
+    } catch (err) {
+      return false;
+    }
+  };
 
   const postLog = (entry, meta = {}) => {
     window.postMessage(
@@ -67,6 +98,9 @@
   const drainDbLog = () => {
     const utag = window.utag;
     if (!utag || !Array.isArray(utag.db_log)) {
+      return;
+    }
+    if (!isUtagDbEnabled()) {
       return;
     }
     const total = utag.db_log.length;
@@ -107,6 +141,9 @@
     const original = utag.DB;
     utag.DB = function (...args) {
       const result = original.apply(this, args);
+      if (!isUtagDbEnabled()) {
+        return result;
+      }
       drainDbLog();
       if (args.length && !Array.isArray(utag.db_log)) {
         try {
@@ -168,6 +205,21 @@
         return;
       }
       enabled = nextEnabled;
+      return;
+    }
+    if (event.data.type === 'set_utagdb_enabled') {
+      if (event.data.enabled === true || event.data.enabled === false) {
+        utagdbOverride = event.data.enabled;
+        if (window.utag && window.utag.cfg) {
+          window.utag.cfg.utagdb = event.data.enabled;
+        }
+        if (event.data.enabled === false && window.utag && Array.isArray(window.utag.db_log)) {
+          window.utag.db_log.length = 0;
+          lastDbIndex = 0;
+        }
+      } else {
+        utagdbOverride = null;
+      }
       return;
     }
     if (event.data.type === 'get_gpc') {

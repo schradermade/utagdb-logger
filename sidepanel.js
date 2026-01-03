@@ -139,6 +139,9 @@ const storageCookiesCount = document.getElementById('storage-cookies-count');
 const storageLocalCount = document.getElementById('storage-local-count');
 const storageSessionCount = document.getElementById('storage-session-count');
 const storageUtagCount = document.getElementById('storage-utag-count');
+const utagdbCookieButton = document.getElementById('utagdb-cookie');
+const utagdbCookieStatus = document.getElementById('utagdb-cookie-status');
+const utagdbCookieIndicator = document.getElementById('utagdb-cookie-indicator');
 
 let storageData = null;
 let storageFilter = '';
@@ -257,6 +260,100 @@ const getActiveTabUrl = () => {
     return null;
   }
   return null;
+};
+
+const setUtagdbCookieStatus = (message, isError) => {
+  if (!utagdbCookieStatus) {
+    return;
+  }
+  utagdbCookieStatus.textContent = message;
+  utagdbCookieStatus.style.color = isError ? '#ff6b6b' : '';
+};
+
+const setUtagdbCookieIndicator = (isOn) => {
+  if (!utagdbCookieIndicator) {
+    return;
+  }
+  utagdbCookieIndicator.classList.toggle('is-on', Boolean(isOn));
+};
+
+const setUtagdbCookieButtonLabel = (isOn) => {
+  if (!utagdbCookieButton) {
+    return;
+  }
+  utagdbCookieButton.textContent = isOn
+    ? 'Disable utagdb Cookie'
+    : 'Enable utagdb Cookie';
+};
+
+const refreshUtagdbCookieIndicator = () => {
+  if (!utagdbCookieIndicator) {
+    return;
+  }
+  getActiveTabInfo(({ tabId }) => {
+    if (!tabId) {
+      setUtagdbCookieIndicator(false);
+      setUtagdbCookieButtonLabel(false);
+      return;
+    }
+    chrome.tabs.sendMessage(tabId, { type: 'get_utagdb_cookie' }, (response) => {
+      if (chrome.runtime.lastError) {
+        setUtagdbCookieIndicator(false);
+        setUtagdbCookieButtonLabel(false);
+        return;
+      }
+      const enabled = Boolean(response && response.enabled);
+      setUtagdbCookieIndicator(enabled);
+      setUtagdbCookieButtonLabel(enabled);
+    });
+  });
+};
+
+const toggleUtagdbCookie = () => {
+  if (!utagdbCookieButton) {
+    return;
+  }
+  getActiveTabInfo(({ tabId }) => {
+    if (!tabId) {
+      setUtagdbCookieStatus('No active tab.', true);
+      return;
+    }
+    chrome.tabs.sendMessage(tabId, { type: 'get_utagdb_cookie' }, (status) => {
+      if (chrome.runtime.lastError) {
+        setUtagdbCookieStatus(chrome.runtime.lastError.message, true);
+        return;
+      }
+      const isEnabled = Boolean(status && status.enabled);
+      const nextEnabled = !isEnabled;
+      setUtagdbCookieStatus(
+        nextEnabled ? 'Setting utagdb cookie...' : 'Clearing utagdb cookie...',
+        false
+      );
+      chrome.tabs.sendMessage(
+        tabId,
+        { type: 'set_utagdb_cookie', enabled: nextEnabled },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            setUtagdbCookieStatus(chrome.runtime.lastError.message, true);
+            return;
+          }
+          if (!response || !response.ok) {
+            setUtagdbCookieStatus(
+              response && response.error ? response.error : 'Failed to set cookie.',
+              true
+            );
+            return;
+          }
+          setUtagdbCookieStatus(
+            nextEnabled ? 'utagdb cookie enabled.' : 'utagdb cookie disabled.',
+            false
+          );
+          setUtagdbCookieIndicator(nextEnabled);
+          setUtagdbCookieButtonLabel(nextEnabled);
+        }
+      );
+    });
+  });
 };
 
 const resolveTabUuid = (tabId, callback) => {
@@ -1761,6 +1858,10 @@ if (storageSearchInput) {
   });
 }
 
+if (utagdbCookieButton) {
+  utagdbCookieButton.addEventListener('click', toggleUtagdbCookie);
+}
+
 const renderConsentSignals = (signals) => {
   if (!consentSignalList) {
     return;
@@ -2139,6 +2240,7 @@ getActiveTabInfo((info) => {
   } else {
     stopConsentPolling();
   }
+  refreshUtagdbCookieIndicator();
 });
 
 document.addEventListener('visibilitychange', () => {
@@ -2158,9 +2260,11 @@ if (chrome.tabs && chrome.tabs.onActivated) {
     chrome.tabs.get(info.tabId, (tab) => {
       if (chrome.runtime.lastError || !tab) {
         applySnapshotsForTab({ tabId: info.tabId, url: null });
+        refreshUtagdbCookieIndicator();
         return;
       }
       applySnapshotsForTab({ tabId: info.tabId, url: tab.url || null });
+      refreshUtagdbCookieIndicator();
       if (isConsentActive()) {
         fetchConsentSnapshot({ silent: true, forceRender: true });
         startConsentPolling();
@@ -2206,6 +2310,7 @@ if (chrome.tabs && chrome.tabs.onUpdated) {
       } else {
         stopConsentPolling();
       }
+      refreshUtagdbCookieIndicator();
     }
   });
 }

@@ -1218,6 +1218,31 @@ async function collectConsentSnapshot() {
 let extensionValid = true;
 const ENABLED_KEY = 'enabled';
 let hasSentInitialEnabled = false;
+let utagdbOverride = null;
+
+const isUtagdbEnabled = () => {
+  if (utagdbOverride === true) {
+    return true;
+  }
+  if (utagdbOverride === false) {
+    return false;
+  }
+  try {
+    const cookieValue = document.cookie
+      .split(';')
+      .map((entry) => entry.trim())
+      .find((entry) => entry.startsWith('utagdb='));
+    const cookieEnabled =
+      cookieValue &&
+      cookieValue.split('=')[1] &&
+      cookieValue.split('=')[1].toLowerCase() === 'true';
+    const cfgEnabled =
+      window.utag && window.utag.cfg && window.utag.cfg.utagdb === true;
+    return Boolean(cookieEnabled || cfgEnabled);
+  } catch (err) {
+    return false;
+  }
+};
 
 const postEnabledState = (enabled) => {
   window.postMessage(
@@ -1267,6 +1292,9 @@ window.addEventListener('message', (event) => {
     return;
   }
   if (event.data.type === 'console_log') {
+    if (!isUtagdbEnabled()) {
+      return;
+    }
     const message = {
       type: 'console_log',
       payload: {
@@ -1324,6 +1352,64 @@ try {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === 'set_enabled') {
         postEnabledState(Boolean(message.enabled));
+        return;
+      }
+      if (message.type === 'set_utagdb_cookie') {
+        try {
+          const enabled = message.enabled !== false;
+          utagdbOverride = enabled;
+          window.postMessage(
+            {
+              source: 'tealium-extension',
+              type: 'set_utagdb_enabled',
+              enabled,
+            },
+            '*'
+          );
+          if (enabled) {
+            document.cookie = 'utagdb=true';
+            if (window.utag && window.utag.cfg) {
+              window.utag.cfg.utagdb = true;
+            }
+            try {
+              window.localStorage.setItem('utagdb', 'true');
+            } catch (err) {
+              // ignore localStorage failures
+            }
+          } else {
+            document.cookie = 'utagdb=; Max-Age=0; path=/';
+            if (window.utag && window.utag.cfg) {
+              window.utag.cfg.utagdb = false;
+            }
+            try {
+              window.localStorage.removeItem('utagdb');
+            } catch (err) {
+              // ignore localStorage failures
+            }
+          }
+          sendResponse({ ok: true });
+        } catch (err) {
+          sendResponse({ ok: false, error: 'Failed to set utagdb cookie.' });
+        }
+        return;
+      }
+      if (message.type === 'get_utagdb_cookie') {
+        try {
+          const cookieValue = document.cookie
+            .split(';')
+            .map((entry) => entry.trim())
+            .find((entry) => entry.startsWith('utagdb='));
+          const hasCookie =
+            cookieValue &&
+            cookieValue.split('=')[1] &&
+            cookieValue.split('=')[1].toLowerCase() === 'true';
+          const enabled =
+            hasCookie ||
+            (window.utag && window.utag.cfg && window.utag.cfg.utagdb === true);
+          sendResponse({ ok: true, enabled: Boolean(enabled) });
+        } catch (err) {
+          sendResponse({ ok: false, enabled: false });
+        }
         return;
       }
       if (message.type === 'get_storage_map') {
