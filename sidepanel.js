@@ -1172,8 +1172,12 @@ const buildCaseFile = (callback) => {
         .filter((snapshot) => (currentUuid ? snapshot.tab_uuid === currentUuid : true))
         .map((snapshot) => {
           const next = { ...snapshot };
+          if ('url' in next) {
+            next.observed_url = next.url;
+            delete next.url;
+          }
           if (redactUrls) {
-            next.url = '[redacted]';
+            next.observed_url = '[redacted]';
           }
           if (redactSignals && Array.isArray(next.signals)) {
             next.signals = next.signals.map((signal) => ({
@@ -1191,7 +1195,17 @@ const buildCaseFile = (callback) => {
       const iqSnapshotKey = currentUuid
         ? `iqProfileSnapshot:tab:${currentUuid}`
         : null;
-      const iqSnapshot = iqSnapshotKey ? items[iqSnapshotKey] : null;
+      let iqSnapshot = iqSnapshotKey ? items[iqSnapshotKey] : null;
+      if (iqSnapshot && typeof iqSnapshot === 'object') {
+        iqSnapshot = { ...iqSnapshot };
+        if ('url' in iqSnapshot) {
+          iqSnapshot.observed_url = iqSnapshot.url;
+          delete iqSnapshot.url;
+        }
+        if (redactUrls && iqSnapshot.observed_url) {
+          iqSnapshot.observed_url = '[redacted]';
+        }
+      }
       const sessionMeta = items[metaKey] || null;
       const sessionLogs = Array.isArray(items[logsKey]) ? items[logsKey] : [];
       const redactedLogs = redactUrls
@@ -1223,7 +1237,12 @@ const buildCaseFile = (callback) => {
               log_count: Number.isFinite(logger.logCount)
                 ? logger.logCount
                 : redactedLogs.length,
-              session: sessionMeta,
+              session: sessionMeta
+                ? {
+                    ...sessionMeta,
+                    observed_url: sessionMeta.observed_url || null,
+                  }
+                : null,
               logs: redactedLogs,
             }
           : null,

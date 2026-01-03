@@ -301,19 +301,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         () => {
           const startedAt = new Date().toISOString();
           const sessionMetaKey = getSessionMetaKey(sessionId);
-          chrome.storage.local.set(
-            {
-              [sessionMetaKey]: {
-                session_id: sessionId,
-                session_name: filename || null,
-                started_at: startedAt,
-                ended_at: null,
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            const activeTab = tabs && tabs[0] ? tabs[0] : null;
+            const observedUrl =
+              activeTab && activeTab.url && activeTab.url.startsWith('http')
+                ? activeTab.url
+                : null;
+            chrome.storage.local.set(
+              {
+                [sessionMetaKey]: {
+                  session_id: sessionId,
+                  session_name: filename || null,
+                  started_at: startedAt,
+                  ended_at: null,
+                  observed_url: observedUrl,
+                },
               },
-            },
-            () => {
-              sendResponse({ ok: true });
-            }
-          );
+              () => {
+                sendResponse({ ok: true });
+              }
+            );
+          });
         }
       );
       return true;
