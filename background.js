@@ -12,6 +12,89 @@ async function sendPayload(payload) {
 if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 }
+let lastSidePanelTabId = null;
+
+const setSidePanelForTab = (tabId, enabled) => {
+  if (!chrome.sidePanel || typeof chrome.sidePanel.setOptions !== 'function') {
+    return;
+  }
+  chrome.sidePanel.setOptions(
+    {
+      tabId,
+      enabled: Boolean(enabled),
+      path: enabled ? 'sidepanel.html' : undefined,
+    },
+    () => {}
+  );
+};
+
+const syncSidePanelToTabs = () => {
+  if (!chrome.tabs || !chrome.tabs.query) {
+    return;
+  }
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach((entry) => {
+      if (!entry || !entry.id) {
+        return;
+      }
+      setSidePanelForTab(entry.id, entry.id === lastSidePanelTabId);
+    });
+  });
+};
+
+if (chrome.action && chrome.action.onClicked) {
+  chrome.action.onClicked.addListener((tab) => {
+    if (!tab || !tab.id) {
+      return;
+    }
+    const activeTabId = tab.id;
+    lastSidePanelTabId = activeTabId;
+    syncSidePanelToTabs();
+  });
+}
+
+if (chrome.tabs && chrome.tabs.onActivated) {
+  chrome.tabs.onActivated.addListener((info) => {
+    if (!info || !info.tabId) {
+      return;
+    }
+    if (lastSidePanelTabId === null) {
+      setSidePanelForTab(info.tabId, false);
+      return;
+    }
+    setSidePanelForTab(info.tabId, info.tabId === lastSidePanelTabId);
+  });
+}
+
+if (chrome.tabs && chrome.tabs.onCreated) {
+  chrome.tabs.onCreated.addListener((tab) => {
+    if (!tab || !tab.id) {
+      return;
+    }
+    setSidePanelForTab(tab.id, tab.id === lastSidePanelTabId);
+  });
+}
+
+if (chrome.tabs && chrome.tabs.onUpdated) {
+  chrome.tabs.onUpdated.addListener((tabId) => {
+    if (!tabId) {
+      return;
+    }
+    if (lastSidePanelTabId === null) {
+      setSidePanelForTab(tabId, false);
+      return;
+    }
+    setSidePanelForTab(tabId, tabId === lastSidePanelTabId);
+  });
+}
+
+if (chrome.tabs && chrome.tabs.onRemoved) {
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    if (lastSidePanelTabId === tabId) {
+      lastSidePanelTabId = null;
+    }
+  });
+}
 
 const RETRY_DELAYS_MS = [250, 500, 1000];
 const ENABLED_KEY = 'enabled';

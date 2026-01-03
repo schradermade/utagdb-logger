@@ -358,6 +358,7 @@ const IQ_RECENT_LIMIT = 5;
 const pendingExportDownloads = new Map();
 let loggerShowAll = false;
 const sectionToggles = Array.from(document.querySelectorAll('.section-toggle'));
+const PERSISTENT_KEYS = new Set([EXPORT_HISTORY_KEY, IQ_RECENT_KEY]);
 
 const getCurrentTabUuid = () =>
   currentTabUuid || (currentTabId ? tabIdToUuid.get(currentTabId) : null);
@@ -371,6 +372,57 @@ const setConsentPill = (el, value, tone) => {
   if (tone) {
     el.classList.add(tone);
   }
+};
+
+const resetEphemeralState = () => {
+  tabIdToUuid.clear();
+  storageSnapshotsByTab.clear();
+  consentSnapshotsByTab.clear();
+  consentCoreSignaturesByTab.clear();
+  iqSnapshotsByTab.clear();
+  iqTokensByTab.clear();
+  iqHostsByTab.clear();
+  iqAccountsByTab.clear();
+  iqProfilesByTab.clear();
+  iqUsernamesByTab.clear();
+  iqKeysByTab.clear();
+  storageData = null;
+  storageFilter = '';
+  currentTabId = null;
+  currentTabUuid = null;
+  loggerShowAll = false;
+};
+
+const clearEphemeralStorage = () => {
+  if (!storageLocal) {
+    return;
+  }
+  storageLocal.get(null, (items) => {
+    if (chrome.runtime.lastError) {
+      return;
+    }
+    const keysToRemove = Object.keys(items || {}).filter(
+      (key) => !PERSISTENT_KEYS.has(key)
+    );
+    if (keysToRemove.length === 0) {
+      return;
+    }
+    storageLocal.remove(keysToRemove, () => {
+      resetEphemeralState();
+      refreshLoggerPreview();
+      if (exportStatus) {
+        exportStatus.textContent = 'No preview yet.';
+      }
+      if (exportPreview) {
+        exportPreview.textContent = '';
+      }
+      exportCaseFileText = '';
+      exportCaseFileObject = null;
+      if (exportSize) {
+        exportSize.textContent = '';
+      }
+    });
+  });
 };
 
 const setSectionCollapsed = (button, collapsed) => {
@@ -393,6 +445,8 @@ sectionToggles.forEach((button) => {
     setSectionCollapsed(button, isExpanded);
   });
 });
+
+clearEphemeralStorage();
 
 
 const normalizeValue = (value) => {
