@@ -225,11 +225,26 @@ const clearSessionSnapshots = (tabUuid) => {
 };
 
 const getActiveTabInfo = (callback) => {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+  const pickTab = (tabs) => {
     const activeTab = tabs && tabs[0] ? tabs[0] : null;
     const tabId = activeTab && activeTab.id ? activeTab.id : null;
     const url = activeTab && typeof activeTab.url === 'string' ? activeTab.url : null;
     callback({ tabId, url });
+  };
+  chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
+    if (tabs && tabs.length) {
+      pickTab(tabs);
+      return;
+    }
+    chrome.tabs.query({ active: true, currentWindow: true }, (fallbackTabs) => {
+      if (fallbackTabs && fallbackTabs.length) {
+        pickTab(fallbackTabs);
+        return;
+      }
+      chrome.tabs.query({ active: true }, (anyTabs) => {
+        pickTab(anyTabs);
+      });
+    });
   });
 };
 
