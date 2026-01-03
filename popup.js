@@ -141,6 +141,8 @@ const sendUtag = () => {
 
 function setFilenameLock() {}
 
+function setFilenameError() {}
+
 const setEnabled = (enabled) => {
   const filename = filenameInput ? filenameInput.value.trim() : '';
   chrome.runtime.sendMessage(
