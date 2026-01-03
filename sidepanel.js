@@ -357,6 +357,7 @@ const IQ_RECENT_KEY = 'iqRecentInputs';
 const IQ_RECENT_LIMIT = 5;
 const pendingExportDownloads = new Map();
 let loggerShowAll = false;
+const sectionToggles = Array.from(document.querySelectorAll('.section-toggle'));
 
 const getCurrentTabUuid = () =>
   currentTabUuid || (currentTabId ? tabIdToUuid.get(currentTabId) : null);
@@ -371,6 +372,27 @@ const setConsentPill = (el, value, tone) => {
     el.classList.add(tone);
   }
 };
+
+const setSectionCollapsed = (button, collapsed) => {
+  const sectionId = button.dataset.section;
+  if (!sectionId) {
+    return;
+  }
+  const body = document.querySelector(`[data-section-body="${sectionId}"]`);
+  if (!body) {
+    return;
+  }
+  body.classList.toggle('is-collapsed', collapsed);
+  button.setAttribute('aria-expanded', String(!collapsed));
+};
+
+sectionToggles.forEach((button) => {
+  setSectionCollapsed(button, button.getAttribute('aria-expanded') === 'false');
+  button.addEventListener('click', () => {
+    const isExpanded = button.getAttribute('aria-expanded') !== 'false';
+    setSectionCollapsed(button, isExpanded);
+  });
+});
 
 
 const normalizeValue = (value) => {

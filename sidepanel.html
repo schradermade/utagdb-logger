@@ -481,12 +481,50 @@
         align-items: center;
         gap: 4px;
       }
+      .panel-section-title.has-toggle {
+        justify-content: space-between;
+      }
+      .panel-section-title-text {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
       .panel-section-title span {
         font-size: 11px;
         font-weight: 500;
         color: #9c9c9c;
         text-transform: uppercase;
         letter-spacing: 0.6px;
+      }
+      .panel-section-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .panel-section-body.is-collapsed {
+        display: none;
+      }
+      .section-toggle {
+        border: 1px solid #2f2f2f;
+        background: #171717;
+        color: #cfcfcf;
+        border-radius: 8px;
+        width: 26px;
+        height: 26px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        padding: 0;
+      }
+      .section-toggle-icon {
+        display: inline-flex;
+        transition: transform 0.2s ease;
+        font-size: 14px;
+        line-height: 1;
+      }
+      .section-toggle[aria-expanded="false"] .section-toggle-icon {
+        transform: rotate(-90deg);
       }
       .logger-status-hidden {
         display: none;
@@ -1167,66 +1205,80 @@
       <section id="feature-iq" class="feature-section" role="tabpanel">
         <div class="iq-form">
           <div class="panel-section">
-            <div class="panel-section-title">Step 1<span>Get Token</span></div>
-            <label class="field">
-              <span>Account</span>
-              <input id="iq-account" type="text" placeholder="success-nathan-schrader" />
-            </label>
-            <label class="field">
-              <span>Profile</span>
-              <input id="iq-profile" type="text" placeholder="main" />
-            </label>
-            <label class="field">
-              <span>Username</span>
-              <input id="iq-username" type="text" placeholder="user@example.com" />
-            </label>
-            <label class="field">
-              <span>API Key</span>
-              <input id="iq-key" type="password" placeholder="API key" />
-            </label>
-            <div class="iq-actions">
-              <button id="iq-auth" class="storage-button" type="button">
-                <span class="btn-label">Get Token</span>
-                <span class="btn-spinner" aria-hidden="true"></span>
+            <div class="panel-section-title has-toggle">
+              <span class="panel-section-title-text">Step 1<span>Get Token</span></span>
+              <button class="section-toggle" type="button" data-section="iq-step-1" aria-expanded="true" aria-label="Toggle Step 1">
+                <span class="section-toggle-icon" aria-hidden="true">▾</span>
               </button>
             </div>
-            <label class="field">
-              <span>Token</span>
-              <input id="iq-token" type="password" placeholder="Paste token to reuse" />
-            </label>
-            <label class="field">
-              <span>Host</span>
-              <input id="iq-host" type="text" placeholder="us-west-2-platform.tealiumapis.com" />
-            </label>
-            <div class="storage-group">
-              <div class="storage-header">
-                <span>Recent Clients</span>
-                <span id="iq-recent-count">0</span>
+            <div class="panel-section-body" data-section-body="iq-step-1">
+              <label class="field">
+                <span>Account</span>
+                <input id="iq-account" type="text" placeholder="success-nathan-schrader" />
+              </label>
+              <label class="field">
+                <span>Profile</span>
+                <input id="iq-profile" type="text" placeholder="main" />
+              </label>
+              <label class="field">
+                <span>Username</span>
+                <input id="iq-username" type="text" placeholder="user@example.com" />
+              </label>
+              <label class="field">
+                <span>API Key</span>
+                <input id="iq-key" type="password" placeholder="API key" />
+              </label>
+              <div class="iq-actions">
+                <button id="iq-auth" class="storage-button" type="button">
+                  <span class="btn-label">Get Token</span>
+                  <span class="btn-spinner" aria-hidden="true"></span>
+                </button>
               </div>
-              <div id="iq-recent-list" class="iq-recent-list"></div>
+              <label class="field">
+                <span>Token</span>
+                <input id="iq-token" type="password" placeholder="Paste token to reuse" />
+              </label>
+              <label class="field">
+                <span>Host</span>
+                <input id="iq-host" type="text" placeholder="us-west-2-platform.tealiumapis.com" />
+              </label>
+              <div class="storage-group">
+                <div class="storage-header">
+                  <span>Recent Clients</span>
+                  <span id="iq-recent-count">0</span>
+                </div>
+                <div id="iq-recent-list" class="iq-recent-list"></div>
+              </div>
             </div>
           </div>
           <div class="panel-section">
-            <div class="panel-section-title">Step 2<span>Fetch Profile</span></div>
-            <div class="iq-includes">
-              <label class="export-option"><input type="checkbox" class="iq-include" value="loadRules" checked /> loadRules</label>
-              <label class="export-option"><input type="checkbox" class="iq-include" value="tags" checked /> tags</label>
-              <label class="export-option"><input type="checkbox" class="iq-include" value="tags.templateList" /> tags.templateList</label>
-              <label class="export-option"><input type="checkbox" class="iq-include" value="tags.template" /> tags.template</label>
-              <label class="export-option"><input type="checkbox" class="iq-include" value="extensions" checked /> extensions</label>
-              <label class="export-option"><input type="checkbox" class="iq-include" value="variables" checked /> variables</label>
-              <label class="export-option"><input type="checkbox" class="iq-include" value="events" /> events</label>
-              <label class="export-option"><input type="checkbox" class="iq-include" value="versionIDs" /> versionIDs</label>
-            </div>
-            <label class="field">
-              <span>Custom includes (comma separated)</span>
-              <input id="iq-includes-custom" type="text" placeholder="loadRules, tags.templateList" />
-            </label>
-            <div class="iq-actions">
-              <button id="iq-fetch" class="storage-button" type="button">
-                <span class="btn-label">Fetch iQ Profile</span>
-                <span class="btn-spinner" aria-hidden="true"></span>
+            <div class="panel-section-title has-toggle">
+              <span class="panel-section-title-text">Step 2<span>Fetch Profile</span></span>
+              <button class="section-toggle" type="button" data-section="iq-step-2" aria-expanded="true" aria-label="Toggle Step 2">
+                <span class="section-toggle-icon" aria-hidden="true">▾</span>
               </button>
+            </div>
+            <div class="panel-section-body" data-section-body="iq-step-2">
+              <div class="iq-includes">
+                <label class="export-option"><input type="checkbox" class="iq-include" value="loadRules" checked /> loadRules</label>
+                <label class="export-option"><input type="checkbox" class="iq-include" value="tags" checked /> tags</label>
+                <label class="export-option"><input type="checkbox" class="iq-include" value="tags.templateList" /> tags.templateList</label>
+                <label class="export-option"><input type="checkbox" class="iq-include" value="tags.template" /> tags.template</label>
+                <label class="export-option"><input type="checkbox" class="iq-include" value="extensions" checked /> extensions</label>
+                <label class="export-option"><input type="checkbox" class="iq-include" value="variables" checked /> variables</label>
+                <label class="export-option"><input type="checkbox" class="iq-include" value="events" /> events</label>
+                <label class="export-option"><input type="checkbox" class="iq-include" value="versionIDs" /> versionIDs</label>
+              </div>
+              <label class="field">
+                <span>Custom includes (comma separated)</span>
+                <input id="iq-includes-custom" type="text" placeholder="loadRules, tags.templateList" />
+              </label>
+              <div class="iq-actions">
+                <button id="iq-fetch" class="storage-button" type="button">
+                  <span class="btn-label">Fetch iQ Profile</span>
+                  <span class="btn-spinner" aria-hidden="true"></span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
