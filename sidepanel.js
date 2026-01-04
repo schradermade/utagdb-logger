@@ -612,8 +612,6 @@ sectionToggles.forEach((button) => {
   });
 });
 
-clearEphemeralStorage();
-
 if (storageLocal) {
   storageLocal.get([EXPORT_HISTORY_KEY], (items) => {
     const history = Array.isArray(items[EXPORT_HISTORY_KEY])
