@@ -1,6 +1,7 @@
 const featureButtons = Array.from(document.querySelectorAll('[data-feature]'));
 const topTabButtons = Array.from(document.querySelectorAll('[data-top-tab]'));
 const toolsView = document.getElementById('tools-view');
+const guideView = document.getElementById('guide-view');
 const exportView = document.getElementById('export-view');
 const recentView = document.getElementById('recent-view');
 const recentList = document.getElementById('recent-list');
@@ -52,6 +53,10 @@ const setActiveTopTab = (tab) => {
   });
   if (toolsView) {
     toolsView.style.display = tab === 'tools' ? 'block' : 'none';
+  }
+  if (guideView) {
+    guideView.classList.toggle('active', tab === 'guide');
+    guideView.setAttribute('aria-hidden', tab === 'guide' ? 'false' : 'true');
   }
   if (exportView) {
     exportView.classList.toggle('active', tab === 'export');

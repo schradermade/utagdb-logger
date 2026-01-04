@@ -89,9 +89,113 @@
       }
       .top-tabs {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: repeat(4, 1fr);
         gap: 8px;
         width: 100%;
+      }
+      .guide-view {
+        display: none;
+        flex-direction: column;
+        gap: 16px;
+        padding-top: 8px;
+      }
+      .guide-view.active {
+        display: flex;
+      }
+      .guide-hero {
+        border: 1px solid #262626;
+        background: #151515;
+        border-radius: 14px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .guide-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #e6e6e6;
+      }
+      .guide-subtitle {
+        font-size: 12px;
+        color: #b6b6b6;
+        line-height: 1.5;
+      }
+      .guide-grid {
+        display: grid;
+        gap: 12px;
+      }
+      .guide-block {
+        border: 1px solid #262626;
+        background: #151515;
+        border-radius: 12px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .guide-block-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: #9c9c9c;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .guide-icon {
+        font-size: 12px;
+        line-height: 1;
+      }
+      .guide-indicator {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        border: 1px solid #c9c9c9;
+        display: inline-block;
+        margin: 0 4px;
+        vertical-align: middle;
+      }
+      .guide-indicator.is-on {
+        border-color: #64c47a;
+        background: #64c47a;
+        box-shadow: 0 0 4px rgba(100, 196, 122, 0.3);
+      }
+      .guide-steps {
+        display: grid;
+        gap: 8px;
+        font-size: 12px;
+        color: #d0d0d0;
+      }
+      .guide-step {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 8px;
+        align-items: start;
+      }
+      .guide-step-number {
+        font-size: 12px;
+        font-weight: 600;
+        color: #8f8f8f;
+      }
+      .guide-note {
+        font-size: 11px;
+        color: #9b9b9b;
+        line-height: 1.4;
+      }
+      .guide-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .guide-tag {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid #2f2f2f;
+        background: #141414;
+        color: #cfcfcf;
       }
       .recent-list {
         display: flex;
@@ -1186,15 +1290,19 @@
     </style>
   </head>
   <body>
-    <div class="header">
-      <div class="app-brand">
-        <div class="app-badge">
-          <img src="jarvis-robot.png" alt="Jarvis" />
+      <div class="header">
+        <div class="app-brand">
+          <div class="app-badge">
+            <img src="jarvis-robot.png" alt="Jarvis" />
+          </div>
+          <div class="app-name">JARVIS</div>
         </div>
-        <div class="app-name">JARVIS</div>
-      </div>
-      <div class="top-tabs" role="tablist" aria-label="Primary">
-        <button class="top-tab active" type="button" data-top-tab="tools" aria-selected="true">
+        <div class="top-tabs" role="tablist" aria-label="Primary">
+        <button class="top-tab active" type="button" data-top-tab="guide" aria-selected="true">
+          <span class="title-icon" aria-hidden="true">📘</span>
+          <span>Guide</span>
+        </button>
+        <button class="top-tab" type="button" data-top-tab="tools" aria-selected="false">
           <span class="title-icon" aria-hidden="true">🛠️</span>
           <span>Tools</span>
         </button>
@@ -1209,6 +1317,97 @@
       </div>
     </div>
     <div class="content">
+      <div id="guide-view" class="guide-view active" role="tabpanel" aria-hidden="false">
+        <div class="guide-hero">
+          <div class="guide-title">Jarvis Workflow Guide</div>
+          <div class="guide-subtitle">
+            Use only the tools you need. Each section is optional, and your case
+            file can include any combination of logs, consent data, and iQ profile
+            details.
+          </div>
+        </div>
+        <div class="guide-grid">
+          <div class="guide-block">
+            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">⚡</span>Quick Start</div>
+            <div class="guide-steps">
+              <div class="guide-step">
+                <span class="guide-step-number">1.</span>
+                <span>Open the site you want to debug and keep that tab active.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">2.</span>
+                <span>Generate the data you want (logs, consent snapshots, or iQ profile). New data is picked up automatically for export.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">3.</span>
+                <span>Use Export Preview to confirm what will be included.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">4.</span>
+                <span>Export when you’re ready.</span>
+              </div>
+            </div>
+          </div>
+          <div class="guide-block">
+            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🧭</span>Section Guides (Optional)</div>
+            <div class="guide-steps">
+              <div class="guide-step">
+                <span class="guide-step-number">1.</span>
+                <span><strong>utag.DB Logs</strong> → enable utagdb, start/stop recording around your test flow.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">2.</span>
+                <span><strong>Consent Monitor</strong> → take a snapshot after consent banner interaction.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">3.</span>
+                <span><strong>iQ Profile</strong> → fetch the exact account/profile under test.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">4.</span>
+                <span><strong>Export</strong> → review preview, then download.</span>
+              </div>
+            </div>
+          </div>
+          <div class="guide-block">
+            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🟢</span>Export Indicators</div>
+            <div class="guide-note">
+              Green dots under feature cards mean data from that section is included in your export.
+              Hollow dots mean the export does not yet contain data from that feature.
+            </div>
+            <div class="guide-note">
+              Example: <span class="guide-indicator is-on" aria-hidden="true"></span>ready
+              <span class="guide-indicator" aria-hidden="true"></span>empty
+            </div>
+            <div class="guide-tags">
+              <span class="guide-tag">utag.DB Logs</span>
+              <span class="guide-tag">Consent Monitor</span>
+              <span class="guide-tag">iQ Profile</span>
+            </div>
+          </div>
+          <div class="guide-block">
+            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🛠️</span>Tips & Troubleshooting</div>
+            <div class="guide-steps">
+              <div class="guide-step">
+                <span class="guide-step-number">•</span>
+                <span>If logs are empty, ensure the utagdb cookie is enabled.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">•</span>
+                <span>Use Export Preview to confirm data before downloading.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">•</span>
+                <span>Recent Exports stores metadata only, not full files.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">•</span>
+                <span>Work in the same active tab; each tab maintains its own session.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div id="tools-view">
         <div class="feature-shell">
           <button class="feature-scroll" type="button" data-scroll="left" aria-label="Scroll feature cards left">
