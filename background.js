@@ -12,12 +12,20 @@ async function sendPayload(payload) {
 if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 }
-let lastSidePanelTabId = null;
+const enabledSidePanelTabs = new Set();
+const SIDE_PANEL_DEBUG = true;
+const sidePanelDebugLog = (...args) => {
+  if (!SIDE_PANEL_DEBUG) {
+    return;
+  }
+  console.log('[Jarvis side panel]', ...args);
+};
 
 const setSidePanelForTab = (tabId, enabled) => {
   if (!chrome.sidePanel || typeof chrome.sidePanel.setOptions !== 'function') {
     return;
   }
+  sidePanelDebugLog('setOptions(tab)', { tabId, enabled });
   chrome.sidePanel.setOptions(
     {
       tabId,
@@ -26,6 +34,43 @@ const setSidePanelForTab = (tabId, enabled) => {
     },
     () => {}
   );
+};
+
+const openSidePanelForTab = (tabId) => {
+  if (!tabId) {
+    return;
+  }
+  if (chrome.sidePanel && typeof chrome.sidePanel.open === 'function') {
+    sidePanelDebugLog('open(tab)', { tabId });
+    chrome.sidePanel.open({ tabId }).catch(() => {});
+  } else {
+    setSidePanelForTab(tabId, true);
+  }
+};
+
+const closeSidePanelForTab = (tabId) => {
+  if (!tabId) {
+    return;
+  }
+  if (chrome.sidePanel && typeof chrome.sidePanel.close === 'function') {
+    sidePanelDebugLog('close(tab)', { tabId });
+    chrome.sidePanel.close({ tabId }).catch(() => {});
+  } else {
+    setSidePanelForTab(tabId, false);
+  }
+};
+
+const closeSidePanelForWindow = (windowId, fallbackTabId) => {
+  if (chrome.sidePanel && typeof chrome.sidePanel.close === 'function') {
+    if (windowId) {
+      sidePanelDebugLog('close(window)', { windowId });
+      chrome.sidePanel.close({ windowId }).catch(() => {});
+      return;
+    }
+    if (fallbackTabId) {
+      closeSidePanelForTab(fallbackTabId);
+    }
+  }
 };
 
 const syncSidePanelToTabs = () => {
@@ -37,7 +82,7 @@ const syncSidePanelToTabs = () => {
       if (!entry || !entry.id) {
         return;
       }
-      setSidePanelForTab(entry.id, entry.id === lastSidePanelTabId);
+      setSidePanelForTab(entry.id, enabledSidePanelTabs.has(entry.id));
     });
   });
 };
@@ -48,8 +93,15 @@ if (chrome.action && chrome.action.onClicked) {
       return;
     }
     const activeTabId = tab.id;
-    lastSidePanelTabId = activeTabId;
+    enabledSidePanelTabs.clear();
+    enabledSidePanelTabs.add(activeTabId);
+    sidePanelDebugLog('action click', {
+      tabId: activeTabId,
+      windowId: tab.windowId,
+      enabledTabs: Array.from(enabledSidePanelTabs),
+    });
     syncSidePanelToTabs();
+    openSidePanelForTab(activeTabId);
   });
 }
 
@@ -58,11 +110,23 @@ if (chrome.tabs && chrome.tabs.onActivated) {
     if (!info || !info.tabId) {
       return;
     }
-    if (lastSidePanelTabId === null) {
-      setSidePanelForTab(info.tabId, false);
-      return;
-    }
-    setSidePanelForTab(info.tabId, info.tabId === lastSidePanelTabId);
+    sidePanelDebugLog('tab activated', { tabId: info.tabId, windowId: info.windowId });
+    chrome.tabs.get(info.tabId, (tab) => {
+      if (chrome.runtime.lastError || !tab) {
+        return;
+      }
+      sidePanelDebugLog('tab details', {
+        tabId: tab.id,
+        windowId: tab.windowId,
+        enabledTabs: Array.from(enabledSidePanelTabs),
+      });
+      if (enabledSidePanelTabs.has(info.tabId)) {
+        openSidePanelForTab(info.tabId);
+      } else {
+        closeSidePanelForWindow(tab.windowId, info.tabId);
+        closeSidePanelForTab(info.tabId);
+      }
+    });
   });
 }
 
@@ -71,7 +135,11 @@ if (chrome.tabs && chrome.tabs.onCreated) {
     if (!tab || !tab.id) {
       return;
     }
-    setSidePanelForTab(tab.id, tab.id === lastSidePanelTabId);
+    sidePanelDebugLog('tab created', { tabId: tab.id, windowId: tab.windowId });
+    setSidePanelForTab(tab.id, enabledSidePanelTabs.has(tab.id));
+    if (!enabledSidePanelTabs.has(tab.id)) {
+      closeSidePanelForTab(tab.id);
+    }
   });
 }
 
@@ -80,21 +148,21 @@ if (chrome.tabs && chrome.tabs.onUpdated) {
     if (!tabId) {
       return;
     }
-    if (lastSidePanelTabId === null) {
-      setSidePanelForTab(tabId, false);
-      return;
+    sidePanelDebugLog('tab updated', { tabId });
+    setSidePanelForTab(tabId, enabledSidePanelTabs.has(tabId));
+    if (!enabledSidePanelTabs.has(tabId)) {
+      closeSidePanelForTab(tabId);
     }
-    setSidePanelForTab(tabId, tabId === lastSidePanelTabId);
   });
 }
 
 if (chrome.tabs && chrome.tabs.onRemoved) {
   chrome.tabs.onRemoved.addListener((tabId) => {
-    if (lastSidePanelTabId === tabId) {
-      lastSidePanelTabId = null;
-    }
+    enabledSidePanelTabs.delete(tabId);
   });
 }
+
+syncSidePanelToTabs();
 
 const RETRY_DELAYS_MS = [250, 500, 1000];
 const ENABLED_KEY = 'enabled';
