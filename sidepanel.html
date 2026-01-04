@@ -98,6 +98,7 @@
         flex-direction: column;
         gap: 16px;
         padding-top: 8px;
+        padding-bottom: 96px;
       }
       .guide-view.active {
         display: flex;
@@ -143,6 +144,15 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
+      }
+      .guide-section-title {
+        font-size: 11px;
+        font-weight: 600;
+        color: #9c9c9c;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        margin-top: 4px;
+        margin-bottom: 4px;
       }
       .guide-icon {
         font-size: 12px;
@@ -1348,27 +1358,80 @@
               </div>
             </div>
           </div>
+          <div class="guide-section-title">Tools</div>
           <div class="guide-block">
-            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🧭</span>Section Guides (Optional)</div>
+            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🧪</span>utag.DB Logs</div>
             <div class="guide-steps">
               <div class="guide-step">
                 <span class="guide-step-number">1.</span>
-                <span><strong>utag.DB Logs</strong> → enable utagdb, start/stop recording around your test flow.</span>
+                <span>Open the site tab you want to test.</span>
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">2.</span>
-                <span><strong>Consent Monitor</strong> → take a snapshot after consent banner interaction.</span>
+                <span>Enable the utagdb cookie if your site requires it to emit utag.DB logs.</span>
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">3.</span>
-                <span><strong>iQ Profile</strong> → fetch the exact account/profile under test.</span>
+                <span>Click Start Recording Logs, run your flow, then stop recording.</span>
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">4.</span>
-                <span><strong>Export</strong> → review preview, then download.</span>
+                <span>Use Logs Preview to validate before exporting.</span>
               </div>
             </div>
           </div>
+          <div class="guide-block">
+            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🛡️</span>Consent Monitor</div>
+            <div class="guide-steps">
+              <div class="guide-step">
+                <span class="guide-step-number">1.</span>
+                <span>Open the target page and interact with the consent banner.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">2.</span>
+                <span>Click Refresh to capture a snapshot.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">3.</span>
+                <span>Confirm the consent state, GPC, and signals in the summary.</span>
+              </div>
+            </div>
+          </div>
+          <div class="guide-block">
+            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🧾</span>iQ Profile</div>
+            <div class="guide-steps">
+              <div class="guide-step">
+                <span class="guide-step-number">1.</span>
+                <span>Enter account/profile and authenticate to get a token.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">2.</span>
+                <span>Select which data to include, then fetch the profile.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">3.</span>
+                <span>Review the Profile Preview before exporting.</span>
+              </div>
+            </div>
+          </div>
+          <div class="guide-block">
+            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">📦</span>Export</div>
+            <div class="guide-steps">
+              <div class="guide-step">
+                <span class="guide-step-number">1.</span>
+                <span>Use Include/Redact options to shape the case file.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">2.</span>
+                <span>Refresh Preview to verify what will be exported.</span>
+              </div>
+              <div class="guide-step">
+                <span class="guide-step-number">3.</span>
+                <span>Export Case File when the preview looks correct.</span>
+              </div>
+            </div>
+          </div>
+          <div class="guide-section-title">Help &amp; Tips</div>
           <div class="guide-block">
             <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🟢</span>Export Indicators</div>
             <div class="guide-note">
