@@ -734,7 +734,7 @@
         margin-bottom: 0;
       }
       #export-view .storage-header .storage-button {
-        margin-top: 12px;
+        margin-top: 16px;
       }
       #export-view .storage-group {
         margin-top: 8px;
@@ -806,13 +806,17 @@
         margin-bottom: 14px;
       }
       .export-section {
-        gap: 12px;
+        gap: 16px;
+        padding: 16px;
       }
       .export-option-group {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 12px;
         width: 100%;
+      }
+      .export-option-group + .export-option-group {
+        margin-top: 8px;
       }
       .export-subtitle {
         font-size: 11px;
@@ -1583,14 +1587,8 @@
                 </div>
               </div>
             </div>
-          </div>
-          <div class="panel-section export-section">
-            <div class="panel-section-title"><span>Export</span><span>Actions</span></div>
-            <div class="export-actions">
-              <div class="storage-controls">
-                <button id="export-download" class="storage-button" type="button">Export Case File</button>
-              </div>
-              <div id="export-status" class="status export-status is-hidden">No preview yet.</div>
+            <div class="storage-controls">
+              <button id="export-download" class="storage-button" type="button">Export Case File</button>
             </div>
           </div>
         </div>
