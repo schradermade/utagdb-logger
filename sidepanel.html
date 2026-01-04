@@ -264,6 +264,19 @@
         justify-content: center;
         scroll-snap-align: start;
       }
+      .feature-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        border: 1px solid #3a3a3a;
+        background: transparent;
+        display: inline-block;
+      }
+      .feature-indicator.is-on {
+        border-color: #7bd88f;
+        background: #7bd88f;
+        box-shadow: 0 0 6px rgba(123, 216, 143, 0.45);
+      }
       .feature-card:hover {
         border-color: #343434;
         background: #181818;
@@ -1204,33 +1217,43 @@
           <div class="feature-nav" role="tablist" aria-label="Features">
             <button class="feature-card active" type="button" data-feature="logger" aria-selected="true">
               <span class="feature-title">utag.DB Logs</span>
+              <span class="feature-indicator" aria-hidden="true"></span>
             </button>
             <button class="feature-card" type="button" data-feature="consent" aria-selected="false">
               <span class="feature-title">Consent Monitor</span>
+              <span class="feature-indicator" aria-hidden="true"></span>
             </button>
             <button class="feature-card" type="button" data-feature="iq" aria-selected="false">
               <span class="feature-title">iQ Profile</span>
+              <span class="feature-indicator" aria-hidden="true"></span>
             </button>
             <button class="feature-card" type="button" data-feature="session" aria-selected="false">
               <span class="feature-title">Session Viewer</span>
+              <span class="feature-indicator" aria-hidden="true"></span>
             </button>
             <button class="feature-card" type="button" data-feature="rules" aria-selected="false">
               <span class="feature-title">Load Rules</span>
+              <span class="feature-indicator" aria-hidden="true"></span>
             </button>
             <button class="feature-card" type="button" data-feature="payloads" aria-selected="false">
               <span class="feature-title">Payload Lab</span>
+              <span class="feature-indicator" aria-hidden="true"></span>
             </button>
             <button class="feature-card" type="button" data-feature="network" aria-selected="false">
               <span class="feature-title">Network Watch</span>
+              <span class="feature-indicator" aria-hidden="true"></span>
             </button>
             <button class="feature-card" type="button" data-feature="events" aria-selected="false">
               <span class="feature-title">Event Stream</span>
+              <span class="feature-indicator" aria-hidden="true"></span>
             </button>
             <button class="feature-card" type="button" data-feature="storage" aria-selected="false">
               <span class="feature-title">Storage Map</span>
+              <span class="feature-indicator" aria-hidden="true"></span>
             </button>
             <button class="feature-card" type="button" data-feature="qa" aria-selected="false">
               <span class="feature-title">QA Checklist</span>
+              <span class="feature-indicator" aria-hidden="true"></span>
             </button>
           </div>
           <button class="feature-scroll" type="button" data-scroll="right" aria-label="Scroll feature cards right">

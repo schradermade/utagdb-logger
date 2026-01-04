@@ -1538,6 +1538,59 @@ const renderRecentExports = (items) => {
   });
 };
 
+const setFeatureExportIndicator = (feature, isOn) => {
+  const card = document.querySelector(`.feature-card[data-feature="${feature}"]`);
+  if (!card) {
+    return;
+  }
+  const indicator = card.querySelector('.feature-indicator');
+  if (!indicator) {
+    return;
+  }
+  indicator.classList.toggle('is-on', Boolean(isOn));
+};
+
+const updateExportFeatureIndicators = (caseFile) => {
+  const includeLogger = !exportIncludeLogger || exportIncludeLogger.checked;
+  const includeConsent = !exportIncludeConsent || exportIncludeConsent.checked;
+  const includeIq = !exportIncludeIq || exportIncludeIq.checked;
+  const loggerReady =
+    includeLogger &&
+    caseFile &&
+    caseFile.utagdb_logger &&
+    Array.isArray(caseFile.utagdb_logger.logs) &&
+    caseFile.utagdb_logger.logs.length > 0;
+  const consentReady =
+    includeConsent &&
+    caseFile &&
+    caseFile.consent_monitor &&
+    Number.isFinite(caseFile.consent_monitor.snapshot_count) &&
+    caseFile.consent_monitor.snapshot_count > 0;
+  const iqReady =
+    includeIq && caseFile && caseFile.iq_profile && caseFile.iq_profile.snapshot;
+
+  setFeatureExportIndicator('logger', loggerReady);
+  setFeatureExportIndicator('consent', consentReady);
+  setFeatureExportIndicator('iq', Boolean(iqReady));
+  setFeatureExportIndicator('session', false);
+  setFeatureExportIndicator('rules', false);
+  setFeatureExportIndicator('payloads', false);
+  setFeatureExportIndicator('network', false);
+  setFeatureExportIndicator('events', false);
+  setFeatureExportIndicator('storage', false);
+  setFeatureExportIndicator('qa', false);
+};
+
+const refreshExportIndicators = () => {
+  buildCaseFile((caseFile, error) => {
+    if (error || !caseFile) {
+      updateExportFeatureIndicators(null);
+      return;
+    }
+    updateExportFeatureIndicators(caseFile);
+  });
+};
+
 const loadRecentExports = () => {
   if (!storageLocal) {
     renderRecentExports([]);
@@ -1662,6 +1715,7 @@ function refreshExportPreview() {
       if (exportSize) {
         exportSize.textContent = '';
       }
+      updateExportFeatureIndicators(null);
       return;
     }
     exportCaseFileObject = caseFile;
@@ -1681,6 +1735,7 @@ function refreshExportPreview() {
       const blob = new Blob([exportCaseFileText], { type: 'application/json' });
       exportSize.textContent = `Estimated size: ${formatBytes(blob.size)}`;
     }
+    updateExportFeatureIndicators(caseFile);
   });
 }
 
@@ -1690,10 +1745,12 @@ const exportCaseFile = () => {
       if (exportStatus) {
         exportStatus.textContent = error || 'Failed to build case file.';
       }
+      updateExportFeatureIndicators(null);
       return;
     }
     exportCaseFileObject = caseFile;
     exportCaseFileText = JSON.stringify(caseFile, null, 2);
+    updateExportFeatureIndicators(caseFile);
     const timestamp = new Date().toISOString();
     const blob = new Blob([exportCaseFileText], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1818,6 +1875,7 @@ if (iqHostInput) {
 }
 
 refreshLoggerPreview();
+refreshExportIndicators();
 
 if (chrome && chrome.storage && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -1834,6 +1892,15 @@ if (chrome && chrome.storage && chrome.storage.onChanged) {
     );
     if (hasLoggerUpdate) {
       refreshLoggerPreview();
+    }
+    const hasExportIndicatorUpdate = keys.some(
+      (key) =>
+        key.startsWith('utagdbLogs:session:') ||
+        key.startsWith('consentSnapshot:tab:') ||
+        key.startsWith('iqProfileSnapshot:tab:')
+    );
+    if (hasExportIndicatorUpdate) {
+      refreshExportIndicators();
     }
   });
 }
