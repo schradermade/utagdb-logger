@@ -1109,6 +1109,44 @@
         border-color: #7a3b3b;
         background: #1a0f0f;
       }
+      .consent-pill-multi {
+        display: inline-flex;
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid #2a2a2a;
+        background: #1a1a1a;
+      }
+      .consent-segment {
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        border-right: 1px solid #2a2a2a;
+        transition: all 0.15s ease;
+      }
+      .consent-segment:last-child {
+        border-right: none;
+      }
+      .consent-segment.inactive {
+        color: #555;
+        background: #0f0f0f;
+      }
+      .consent-segment.active.ok {
+        color: #f0f0f0;
+        background: #0f1712;
+        border-color: #3b7a4d;
+      }
+      .consent-segment.active.warn {
+        color: #f0f0f0;
+        background: #1a1408;
+        border-color: #80662b;
+      }
+      .consent-segment.active.bad {
+        color: #f0f0f0;
+        background: #1a0f0f;
+        border-color: #7a3b3b;
+      }
       .consent-subitems {
         display: flex;
         flex-direction: column;
@@ -2173,9 +2211,12 @@
               </div>
               <div id="consent-cmps" class="consent-subitems"></div>
             </div>
-            <div class="consent-row">
-              <span>Consent Data Stored</span>
-              <span id="consent-present" class="consent-pill">Unknown</span>
+            <div class="consent-row-group">
+              <div class="consent-row">
+                <span>Consent Data Stored</span>
+                <span id="consent-present" class="consent-pill">Unknown</span>
+              </div>
+              <div id="consent-sources" class="consent-subitems"></div>
             </div>
             <div class="consent-row">
               <span>GPC Signal</span>
@@ -2183,7 +2224,7 @@
             </div>
             <div class="consent-row">
               <span>Consent State</span>
-              <span id="consent-state" class="consent-pill">Unknown</span>
+              <div id="consent-state"></div>
             </div>
             <div id="consent-categories" class="consent-subitems"></div>
           </div>

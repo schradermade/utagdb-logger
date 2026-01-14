@@ -472,6 +472,7 @@ const consentStatus = document.getElementById('consent-status');
 const consentRequired = document.getElementById('consent-required');
 const consentCmps = document.getElementById('consent-cmps');
 const consentPresent = document.getElementById('consent-present');
+const consentSources = document.getElementById('consent-sources');
 const consentState = document.getElementById('consent-state');
 const consentGpc = document.getElementById('consent-gpc');
 const consentRegulatory = document.getElementById('consent-regulatory');
@@ -2121,17 +2122,70 @@ const renderConsentSignals = (signals) => {
   }
 };
 
+const renderConsentState = (value, tone) => {
+  if (!consentState) {
+    return;
+  }
+  consentState.innerHTML = '';
+
+  const multiPartStates = ['Rejected', 'Strictly Necessary Only', 'Partial', 'Accepted'];
+
+  if (multiPartStates.includes(value)) {
+    // Render multi-part pill
+    const multiPill = document.createElement('div');
+    multiPill.className = 'consent-pill-multi';
+
+    // Map values to normalized display
+    const normalizedValue =
+      value === 'Rejected' || value === 'Strictly Necessary Only' ? 'No Consent' :
+      value === 'Accepted' ? 'Full Consent' :
+      value;
+
+    const states = [
+      { label: 'No Consent', tone: 'bad' },
+      { label: 'Partial', tone: 'warn' },
+      { label: 'Full Consent', tone: 'ok' }
+    ];
+
+    states.forEach((state) => {
+      const segment = document.createElement('div');
+      segment.className = 'consent-segment';
+      segment.textContent = state.label;
+
+      if (state.label === normalizedValue) {
+        segment.classList.add('active', state.tone);
+      } else {
+        segment.classList.add('inactive');
+      }
+
+      multiPill.appendChild(segment);
+    });
+
+    consentState.appendChild(multiPill);
+  } else {
+    // Render regular pill for Unknown, Not Required, etc.
+    const pill = document.createElement('span');
+    pill.className = 'consent-pill';
+    pill.textContent = value || 'Unknown';
+    if (tone) {
+      pill.classList.add(tone);
+    }
+    consentState.appendChild(pill);
+  }
+};
+
 const setConsentEmpty = (message) => {
   if (consentStatus) {
     consentStatus.textContent = message;
   }
   setConsentPill(consentRequired, 'Unknown', null);
   setConsentPill(consentPresent, 'Unknown', null);
-  setConsentPill(consentState, 'Unknown', null);
+  renderConsentState('Unknown', null);
   setConsentPill(consentGpc, 'Unknown', null);
   setConsentPill(consentRegulatory, 'Unknown', null);
   renderRegulatorySourcesList([]);
   renderCmpsList([]);
+  renderConsentSourcesList([]);
   renderConsentCategories([]);
   renderConsentSignals([]);
   if (consentMeta) {
@@ -2149,7 +2203,9 @@ const renderRegulatorySourcesList = (sources) => {
   }
   const header = document.createElement('div');
   header.className = 'storage-key';
-  header.style.fontWeight = '600';
+  header.style.fontWeight = '500';
+  header.style.color = '#888';
+  header.style.fontSize = '0.85em';
   header.style.marginTop = '8px';
   header.style.marginBottom = '4px';
   header.textContent = 'Detection Sources:';
@@ -2181,6 +2237,32 @@ const renderCmpsList = (cmps) => {
     value.textContent = cmp;
     item.appendChild(value);
     consentCmps.appendChild(item);
+  });
+};
+
+const renderConsentSourcesList = (sources) => {
+  if (!consentSources) {
+    return;
+  }
+  consentSources.innerHTML = '';
+  if (!Array.isArray(sources) || sources.length === 0) {
+    return;
+  }
+  const header = document.createElement('div');
+  header.className = 'storage-item';
+  header.style.fontWeight = '500';
+  header.style.color = '#888';
+  header.style.fontSize = '0.85em';
+  header.textContent = 'Detection Sources:';
+  consentSources.appendChild(header);
+  sources.forEach((source) => {
+    const item = document.createElement('div');
+    item.className = 'storage-item';
+    const value = document.createElement('div');
+    value.className = 'storage-value';
+    value.textContent = source;
+    item.appendChild(value);
+    consentSources.appendChild(item);
   });
 };
 
@@ -2276,11 +2358,12 @@ const applyConsentSnapshot = (payload) => {
   const regulatory = payload.regulatory_model || {};
   setConsentPill(consentRequired, required.value || 'Unknown', required.tone);
   setConsentPill(consentPresent, present.value || 'Unknown', present.tone);
-  setConsentPill(consentState, state.value || 'Unknown', state.tone);
+  renderConsentState(state.value || 'Unknown', state.tone);
   setConsentPill(consentGpc, gpc.value || 'Unknown', gpc.tone);
   setConsentPill(consentRegulatory, regulatory.value || 'Unknown', null);
   renderRegulatorySourcesList(regulatory.sources || []);
   renderCmpsList(required.detected_cmps || []);
+  renderConsentSourcesList(present.signals || []);
   renderConsentCategories(payload.categories || []);
   if (consentMeta) {
     const capturedAt = payload.captured_at
