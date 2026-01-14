@@ -484,6 +484,7 @@ const exportPreview = document.getElementById('export-preview');
 const loggerPreview = document.getElementById('logger-preview');
 const loggerPreviewCount = document.getElementById('logger-preview-count');
 const loggerToggleButton = document.getElementById('logger-toggle');
+const loggerClearButton = document.getElementById('logger-clear');
 const loggerCopyButton = document.getElementById('logger-copy');
 const exportCopyButton = document.getElementById('export-copy');
 const iqAccountInput = document.getElementById('iq-account');
@@ -2374,6 +2375,36 @@ if (loggerToggleButton) {
   loggerToggleButton.addEventListener('click', () => {
     loggerShowAll = !loggerShowAll;
     refreshLoggerPreview();
+  });
+}
+if (loggerClearButton) {
+  loggerClearButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    chrome.runtime.sendMessage({ type: 'get_enabled' }, (response) => {
+      if (chrome.runtime.lastError) {
+        return;
+      }
+      if (!response) {
+        return;
+      }
+      const sessionId = response.sessionId || response.lastSessionId || null;
+      if (!sessionId) {
+        refreshLoggerPreview();
+        return;
+      }
+
+      const logsKey = `utagdbLogs:session:${sessionId}`;
+      const metaKey = `utagdbSession:${sessionId}`;
+
+      chrome.storage.local.remove([logsKey], () => {
+        chrome.storage.local.set({ sessionLogCount: 0 }, () => {
+          loggerShowAll = false;
+          refreshLoggerPreview();
+        });
+      });
+    });
   });
 }
 if (exportCopyButton) {
