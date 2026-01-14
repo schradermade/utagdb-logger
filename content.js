@@ -602,6 +602,57 @@ function collectOptOutGpcData(cookies) {
   };
 }
 
+function collectTealiumConsentManagerData(cookies) {
+  const raw = cookies.get('CONSENTMGR');
+  if (!raw) {
+    return null;
+  }
+  const consentFlags = {};
+  let overallConsent = null;
+  let decoded = raw;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch (err) {
+    // If decode fails, use raw value
+  }
+  try {
+    const parts = decoded.split('|');
+    parts.forEach((part) => {
+      const [key, value] = part.split(':');
+      if (!key) {
+        return;
+      }
+      const trimmedKey = key.trim();
+      const trimmedValue = value ? value.trim() : '';
+
+      // Parse category flags (c1, c2, c9, c15, etc.)
+      if (trimmedKey.startsWith('c') && /^c\d+$/.test(trimmedKey)) {
+        consentFlags[trimmedKey] = trimmedValue === '1';
+      }
+
+      // Parse overall consent flag
+      if (trimmedKey === 'consent') {
+        overallConsent = trimmedValue === 'true';
+      }
+    });
+  } catch (err) {
+    // ignore parse errors
+  }
+
+  if (Object.keys(consentFlags).length === 0) {
+    return null;
+  }
+
+  const summary = summarizeBooleanFlags(consentFlags);
+  return {
+    raw,
+    consentFlags,
+    summary,
+    overallConsent,
+    consentedCategories: listAcceptedFlags(consentFlags),
+  };
+}
+
 function sanitizeSignalValue(value) {
   if (value === undefined) {
     return undefined;
@@ -754,24 +805,26 @@ async function collectConsentSnapshot() {
   );
   const onetrustConsentedGroups = getOneTrustConsentedGroups(onetrustGroups);
 
-  addSignal('cookie OptanonConsent', onetrustConsent || null);
-  const orderedOneTrustGroups = Object.keys(onetrustGroups)
-    .sort((left, right) => left.localeCompare(right))
-    .map((key) => `${key}:${onetrustGroups[key] ? '1' : '0'}`)
-    .join(',');
-  addSignal('OneTrust groups', orderedOneTrustGroups || onetrustGroupString || null);
-  addSignal('cookie OnetrustActiveGroups', onetrustActiveGroups || null);
-  addSignal('OneTrust isGpcEnabled', onetrustGpcFlags.isGpcEnabled);
-  addSignal('OneTrust browserGpcFlag', onetrustGpcFlags.browserGpcFlag);
-  Object.entries(onetrustGroups).forEach(([group, accepted]) => {
-    addCategoryStatus(group, accepted);
-  });
-  if (!Object.keys(onetrustGroups).length && onetrustActiveGroups) {
-    onetrustActiveGroups
-      .split(',')
-      .map((group) => group.trim())
-      .filter(Boolean)
-      .forEach((group) => addCategoryStatus(group, true));
+  if (onetrustConsent || onetrustActiveGroups) {
+    addSignal('cookie OptanonConsent', onetrustConsent || null);
+    const orderedOneTrustGroups = Object.keys(onetrustGroups)
+      .sort((left, right) => left.localeCompare(right))
+      .map((key) => `${key}:${onetrustGroups[key] ? '1' : '0'}`)
+      .join(',');
+    addSignal('OneTrust groups', orderedOneTrustGroups || onetrustGroupString || null);
+    addSignal('cookie OnetrustActiveGroups', onetrustActiveGroups || null);
+    addSignal('OneTrust isGpcEnabled', onetrustGpcFlags.isGpcEnabled);
+    addSignal('OneTrust browserGpcFlag', onetrustGpcFlags.browserGpcFlag);
+    Object.entries(onetrustGroups).forEach(([group, accepted]) => {
+      addCategoryStatus(group, accepted);
+    });
+    if (!Object.keys(onetrustGroups).length && onetrustActiveGroups) {
+      onetrustActiveGroups
+        .split(',')
+        .map((group) => group.trim())
+        .filter(Boolean)
+        .forEach((group) => addCategoryStatus(group, true));
+    }
   }
 
   const cookiebotData = collectCookiebotData();
@@ -881,10 +934,22 @@ async function collectConsentSnapshot() {
     });
   }
 
+  const tealiumCmData = collectTealiumConsentManagerData(cookies);
+  if (tealiumCmData) {
+    addSignal('Tealium CM cookie', tealiumCmData.raw || null);
+    addSignal('Tealium CM consent', tealiumCmData.overallConsent);
+    Object.entries(tealiumCmData.consentFlags || {}).forEach(
+      ([category, accepted]) => addCategoryStatus(category, accepted)
+    );
+  }
+
   const optOutData = collectOptOutGpcData(cookies);
   const navigatorGpc = navigator.globalPrivacyControl;
-  addSignal('GPC signal (page)', gpcFromPage, { allowUndefined: true });
-  addSignal('GPC signal (content script)', navigatorGpc, { allowUndefined: true });
+  if (gpcFromPage !== undefined) {
+    addSignal('GPC signal (page)', gpcFromPage);
+  } else if (navigatorGpc !== undefined) {
+    addSignal('GPC signal (content script)', navigatorGpc);
+  }
   addSignal(
     'Opt-out cookie',
     optOutData.optOutCookie || 'Not set'
@@ -953,6 +1018,10 @@ async function collectConsentSnapshot() {
   if (dcrData) {
     consentRequiredSignals.push('Digital Control Room');
     detectedCmps.push('Digital Control Room');
+  }
+  if (tealiumCmData) {
+    consentRequiredSignals.push('Tealium Consent Manager');
+    detectedCmps.push('Tealium Consent Manager');
   }
   if (tciSignals.length > 0) {
     consentRequiredSignals.push('tci.*');
@@ -1113,6 +1182,22 @@ async function collectConsentSnapshot() {
         : dcrData.summary.state === 'rejected'
         ? 'bad'
         : 'warn';
+  } else if (tealiumCmData && tealiumCmData.summary) {
+    stateValue =
+      tealiumCmData.summary.state === 'accepted'
+        ? 'Accepted'
+        : tealiumCmData.summary.state === 'rejected'
+        ? 'Rejected'
+        : 'Partial';
+    stateTone =
+      tealiumCmData.summary.state === 'accepted'
+        ? 'ok'
+        : tealiumCmData.summary.state === 'rejected'
+        ? 'bad'
+        : 'warn';
+    if (tealiumCmData.summary.detail) {
+      addSignal('Tealium CM summary', tealiumCmData.summary.detail);
+    }
   } else if (tcfData && tcfData.purpose && tcfData.purpose.consents) {
     const values = Object.values(tcfData.purpose.consents || {});
     if (values.length) {

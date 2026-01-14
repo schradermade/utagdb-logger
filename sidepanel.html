@@ -1027,6 +1027,9 @@
         padding-left: 6px;
         line-height: 1.2;
       }
+      #consent-signal-list {
+        gap: 12px;
+      }
       #consent-signal-list .storage-value {
         background: #1c1c1c;
         border: 1px solid #2a2a2a;
@@ -2196,7 +2199,11 @@
           </div>
           <div id="consent-status" class="status">No snapshot yet.</div>
 
-          <div class="consent-summary">
+          <div class="storage-group">
+            <div class="storage-header">
+              <span>Consent Summary</span>
+            </div>
+            <div class="consent-summary">
             <div class="consent-row-group">
               <div class="consent-row">
                 <span>Regulatory Model</span>
@@ -2231,6 +2238,7 @@
                 <div id="consent-state"></div>
               </div>
               <div id="consent-categories" class="consent-subitems"></div>
+            </div>
             </div>
           </div>
 
