@@ -242,7 +242,8 @@
         border-radius: 6px;
         padding: 6px 8px;
         word-break: break-all;
-        font-family: SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-family: SFMono-Regular, Menlo, Consolas, 'Liberation Mono',
+          monospace;
       }
       .recent-url-list {
         display: flex;
@@ -250,7 +251,7 @@
         gap: 6px;
       }
       .recent-url-title {
-        font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
         font-size: 10px;
         letter-spacing: 0.6px;
         text-transform: uppercase;
@@ -317,7 +318,9 @@
         padding-bottom: 28px;
       }
       #tools-view {
-        padding-top: calc(var(--feature-shell-height) + var(--header-gap) + 12px);
+        padding-top: calc(
+          var(--feature-shell-height) + var(--header-gap) + 12px
+        );
       }
       .feature-shell {
         margin: 0;
@@ -373,7 +376,10 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
-        transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+        transition:
+          border-color 0.2s ease,
+          background 0.2s ease,
+          color 0.2s ease;
         align-items: center;
         justify-content: center;
         scroll-snap-align: start;
@@ -710,7 +716,7 @@
         font-size: 14px;
         line-height: 1;
       }
-      .section-toggle[aria-expanded="false"] .section-toggle-icon {
+      .section-toggle[aria-expanded='false'] .section-toggle-icon {
         transform: rotate(-90deg);
       }
       .logger-status-hidden {
@@ -746,7 +752,8 @@
         font-size: 12px;
         color: #d6d6d6;
         word-break: break-all;
-        font-family: SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-family: SFMono-Regular, Menlo, Consolas, 'Liberation Mono',
+          monospace;
       }
       .iq-meta-time {
         font-size: 11px;
@@ -889,7 +896,8 @@
         color: #bdbdbd;
         white-space: pre-wrap;
         word-break: break-word;
-        font-family: SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-family: SFMono-Regular, Menlo, Consolas, 'Liberation Mono',
+          monospace;
       }
       .export-preview {
         background: #1b1b1b;
@@ -1046,6 +1054,21 @@
         font-size: 12px;
         color: #cfcfcf;
       }
+      .consent-row-group {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px;
+        border-radius: 8px;
+        background: #161616;
+        border: 1px solid #232323;
+      }
+      .consent-row-group .consent-subitems {
+        margin-left: 16px;
+        padding-left: 8px;
+        border-left: 2px solid #2a2a2a;
+        margin-top: 4px;
+      }
       .consent-pill {
         padding: 3px 8px;
         border-radius: 999px;
@@ -1118,7 +1141,8 @@
         color: #d9d9d9;
         font-size: 11px;
         word-break: break-all;
-        font-family: SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+        font-family: SFMono-Regular, Menlo, Consolas, 'Liberation Mono',
+          monospace;
       }
       .consent-meta-time {
         font-size: 11px;
@@ -1300,57 +1324,93 @@
     </style>
   </head>
   <body>
-      <div class="header">
-        <div class="app-brand">
-          <div class="app-badge">
-            <img src="jarvis-robot.png" alt="Jarvis" />
-          </div>
-          <div class="app-name">JARVIS</div>
+    <div class="header">
+      <div class="app-brand">
+        <div class="app-badge">
+          <img src="jarvis-robot.png" alt="Jarvis" />
         </div>
-        <div class="top-tabs" role="tablist" aria-label="Primary">
-        <button class="top-tab active" type="button" data-top-tab="guide" aria-selected="true">
+        <div class="app-name">JARVIS</div>
+      </div>
+      <div class="top-tabs" role="tablist" aria-label="Primary">
+        <button
+          class="top-tab active"
+          type="button"
+          data-top-tab="guide"
+          aria-selected="true"
+        >
           <span class="title-icon" aria-hidden="true">📘</span>
           <span>Guide</span>
         </button>
-        <button class="top-tab" type="button" data-top-tab="tools" aria-selected="false">
+        <button
+          class="top-tab"
+          type="button"
+          data-top-tab="tools"
+          aria-selected="false"
+        >
           <span class="title-icon" aria-hidden="true">🛠️</span>
           <span>Tools</span>
         </button>
-        <button class="top-tab" type="button" data-top-tab="recent" aria-selected="false">
+        <button
+          class="top-tab"
+          type="button"
+          data-top-tab="recent"
+          aria-selected="false"
+        >
           <span class="title-icon" aria-hidden="true">🗂️</span>
           <span>Recent Exports</span>
         </button>
-        <button class="top-tab" type="button" data-top-tab="export" aria-selected="false">
+        <button
+          class="top-tab"
+          type="button"
+          data-top-tab="export"
+          aria-selected="false"
+        >
           <span class="title-icon" aria-hidden="true">📤</span>
           <span>Export</span>
         </button>
       </div>
     </div>
     <div class="content">
-      <div id="guide-view" class="guide-view active" role="tabpanel" aria-hidden="false">
+      <div
+        id="guide-view"
+        class="guide-view active"
+        role="tabpanel"
+        aria-hidden="false"
+      >
         <div class="guide-hero">
           <div class="guide-title">Jarvis Workflow Guide</div>
           <div class="guide-subtitle">
             Use only the tools you need. Each section is optional, and your case
-            file can include any combination of logs, consent data, and iQ profile
-            details.
+            file can include any combination of logs, consent data, and iQ
+            profile details.
           </div>
         </div>
         <div class="guide-grid">
           <div class="guide-block">
-            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">⚡</span>Quick Start</div>
+            <div class="guide-block-title">
+              <span class="guide-icon" aria-hidden="true">⚡</span>Quick Start
+            </div>
             <div class="guide-steps">
               <div class="guide-step">
                 <span class="guide-step-number">1.</span>
-                <span>Open the site you want to debug and keep that tab active.</span>
+                <span
+                  >Open the site you want to debug and keep that tab
+                  active.</span
+                >
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">2.</span>
-                <span>Generate the data you want (logs, consent snapshots, or iQ profile). New data is picked up automatically for export.</span>
+                <span
+                  >Generate the data you want (logs, consent snapshots, or iQ
+                  profile). New data is picked up automatically for
+                  export.</span
+                >
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">3.</span>
-                <span>Use Export Preview to confirm what will be included.</span>
+                <span
+                  >Use Export Preview to confirm what will be included.</span
+                >
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">4.</span>
@@ -1360,7 +1420,9 @@
           </div>
           <div class="guide-section-title">Tools</div>
           <div class="guide-block">
-            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🧪</span>utag.DB Logs</div>
+            <div class="guide-block-title">
+              <span class="guide-icon" aria-hidden="true">🧪</span>utag.DB Logs
+            </div>
             <div class="guide-steps">
               <div class="guide-step">
                 <span class="guide-step-number">1.</span>
@@ -1368,11 +1430,17 @@
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">2.</span>
-                <span>Enable the utagdb cookie if your site requires it to emit utag.DB logs.</span>
+                <span
+                  >Enable the utagdb cookie if your site requires it to emit
+                  utag.DB logs.</span
+                >
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">3.</span>
-                <span>Click Start Recording Logs, run your flow, then stop recording.</span>
+                <span
+                  >Click Start Recording Logs, run your flow, then stop
+                  recording.</span
+                >
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">4.</span>
@@ -1381,11 +1449,17 @@
             </div>
           </div>
           <div class="guide-block">
-            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🛡️</span>Consent Monitor</div>
+            <div class="guide-block-title">
+              <span class="guide-icon" aria-hidden="true">🛡️</span>Consent
+              Monitor
+            </div>
             <div class="guide-steps">
               <div class="guide-step">
                 <span class="guide-step-number">1.</span>
-                <span>Open the target page and interact with the consent banner.</span>
+                <span
+                  >Open the target page and interact with the consent
+                  banner.</span
+                >
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">2.</span>
@@ -1393,20 +1467,29 @@
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">3.</span>
-                <span>Confirm the consent state, GPC, and signals in the summary.</span>
+                <span
+                  >Confirm the consent state, GPC, and signals in the
+                  summary.</span
+                >
               </div>
             </div>
           </div>
           <div class="guide-block">
-            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🧾</span>iQ Profile</div>
+            <div class="guide-block-title">
+              <span class="guide-icon" aria-hidden="true">🧾</span>iQ Profile
+            </div>
             <div class="guide-steps">
               <div class="guide-step">
                 <span class="guide-step-number">1.</span>
-                <span>Enter account/profile and authenticate to get a token.</span>
+                <span
+                  >Enter account/profile and authenticate to get a token.</span
+                >
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">2.</span>
-                <span>Select which data to include, then fetch the profile.</span>
+                <span
+                  >Select which data to include, then fetch the profile.</span
+                >
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">3.</span>
@@ -1415,7 +1498,9 @@
             </div>
           </div>
           <div class="guide-block">
-            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">📦</span>Export</div>
+            <div class="guide-block-title">
+              <span class="guide-icon" aria-hidden="true">📦</span>Export
+            </div>
             <div class="guide-steps">
               <div class="guide-step">
                 <span class="guide-step-number">1.</span>
@@ -1433,13 +1518,19 @@
           </div>
           <div class="guide-section-title">Help &amp; Tips</div>
           <div class="guide-block">
-            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🟢</span>Export Indicators</div>
-            <div class="guide-note">
-              Green dots under feature cards mean data from that section is included in your export.
-              Hollow dots mean the export does not yet contain data from that feature.
+            <div class="guide-block-title">
+              <span class="guide-icon" aria-hidden="true">🟢</span>Export
+              Indicators
             </div>
             <div class="guide-note">
-              Example: <span class="guide-indicator is-on" aria-hidden="true"></span>ready
+              Green dots under feature cards mean data from that section is
+              included in your export. Hollow dots mean the export does not yet
+              contain data from that feature.
+            </div>
+            <div class="guide-note">
+              Example:
+              <span class="guide-indicator is-on" aria-hidden="true"></span
+              >ready
               <span class="guide-indicator" aria-hidden="true"></span>empty
             </div>
             <div class="guide-tags">
@@ -1449,23 +1540,35 @@
             </div>
           </div>
           <div class="guide-block">
-            <div class="guide-block-title"><span class="guide-icon" aria-hidden="true">🛠️</span>Tips & Troubleshooting</div>
+            <div class="guide-block-title">
+              <span class="guide-icon" aria-hidden="true">🛠️</span>Tips &
+              Troubleshooting
+            </div>
             <div class="guide-steps">
               <div class="guide-step">
                 <span class="guide-step-number">•</span>
-                <span>If logs are empty, ensure the utagdb cookie is enabled.</span>
+                <span
+                  >If logs are empty, ensure the utagdb cookie is enabled.</span
+                >
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">•</span>
-                <span>Use Export Preview to confirm data before downloading.</span>
+                <span
+                  >Use Export Preview to confirm data before downloading.</span
+                >
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">•</span>
-                <span>Recent Exports stores metadata only, not full files.</span>
+                <span
+                  >Recent Exports stores metadata only, not full files.</span
+                >
               </div>
               <div class="guide-step">
                 <span class="guide-step-number">•</span>
-                <span>Work in the same active tab; each tab maintains its own session.</span>
+                <span
+                  >Work in the same active tab; each tab maintains its own
+                  session.</span
+                >
               </div>
             </div>
           </div>
@@ -1473,376 +1576,699 @@
       </div>
       <div id="tools-view">
         <div class="feature-shell">
-          <button class="feature-scroll" type="button" data-scroll="left" aria-label="Scroll feature cards left">
+          <button
+            class="feature-scroll"
+            type="button"
+            data-scroll="left"
+            aria-label="Scroll feature cards left"
+          >
             ‹
           </button>
           <div class="feature-nav" role="tablist" aria-label="Features">
-            <button class="feature-card active" type="button" data-feature="logger" aria-selected="true">
+            <button
+              class="feature-card active"
+              type="button"
+              data-feature="logger"
+              aria-selected="true"
+            >
               <span class="feature-title">utag.DB Logs</span>
               <span class="feature-indicator" aria-hidden="true"></span>
             </button>
-            <button class="feature-card" type="button" data-feature="consent" aria-selected="false">
+            <button
+              class="feature-card"
+              type="button"
+              data-feature="consent"
+              aria-selected="false"
+            >
               <span class="feature-title">Consent Monitor</span>
               <span class="feature-indicator" aria-hidden="true"></span>
             </button>
-            <button class="feature-card" type="button" data-feature="iq" aria-selected="false">
+            <button
+              class="feature-card"
+              type="button"
+              data-feature="iq"
+              aria-selected="false"
+            >
               <span class="feature-title">iQ Profile</span>
               <span class="feature-indicator" aria-hidden="true"></span>
             </button>
-            <button class="feature-card" type="button" data-feature="session" aria-selected="false">
+            <button
+              class="feature-card"
+              type="button"
+              data-feature="session"
+              aria-selected="false"
+            >
               <span class="feature-title">Session Viewer</span>
               <span class="feature-indicator" aria-hidden="true"></span>
             </button>
-            <button class="feature-card" type="button" data-feature="rules" aria-selected="false">
+            <button
+              class="feature-card"
+              type="button"
+              data-feature="rules"
+              aria-selected="false"
+            >
               <span class="feature-title">Load Rules</span>
               <span class="feature-indicator" aria-hidden="true"></span>
             </button>
-            <button class="feature-card" type="button" data-feature="payloads" aria-selected="false">
+            <button
+              class="feature-card"
+              type="button"
+              data-feature="payloads"
+              aria-selected="false"
+            >
               <span class="feature-title">Payload Lab</span>
               <span class="feature-indicator" aria-hidden="true"></span>
             </button>
-            <button class="feature-card" type="button" data-feature="network" aria-selected="false">
+            <button
+              class="feature-card"
+              type="button"
+              data-feature="network"
+              aria-selected="false"
+            >
               <span class="feature-title">Network Watch</span>
               <span class="feature-indicator" aria-hidden="true"></span>
             </button>
-            <button class="feature-card" type="button" data-feature="events" aria-selected="false">
+            <button
+              class="feature-card"
+              type="button"
+              data-feature="events"
+              aria-selected="false"
+            >
               <span class="feature-title">Event Stream</span>
               <span class="feature-indicator" aria-hidden="true"></span>
             </button>
-            <button class="feature-card" type="button" data-feature="storage" aria-selected="false">
+            <button
+              class="feature-card"
+              type="button"
+              data-feature="storage"
+              aria-selected="false"
+            >
               <span class="feature-title">Storage Map</span>
               <span class="feature-indicator" aria-hidden="true"></span>
             </button>
-            <button class="feature-card" type="button" data-feature="qa" aria-selected="false">
+            <button
+              class="feature-card"
+              type="button"
+              data-feature="qa"
+              aria-selected="false"
+            >
               <span class="feature-title">QA Checklist</span>
               <span class="feature-indicator" aria-hidden="true"></span>
             </button>
           </div>
-          <button class="feature-scroll" type="button" data-scroll="right" aria-label="Scroll feature cards right">
+          <button
+            class="feature-scroll"
+            type="button"
+            data-scroll="right"
+            aria-label="Scroll feature cards right"
+          >
             ›
           </button>
         </div>
 
-      <section id="feature-logger" class="feature-section active" role="tabpanel">
-        <div class="panel-section">
-          <div class="panel-section-title"><span>Session</span><span>Logger</span></div>
-          <div class="logger-steps">
-            <div class="logger-step">
-              <div class="logger-step-inline">
-                <span class="logger-step-number">1.</span>Enable utagdb Cookie (if needed).
+        <section
+          id="feature-logger"
+          class="feature-section active"
+          role="tabpanel"
+        >
+          <div class="panel-section">
+            <div class="panel-section-title">
+              <span>Session</span><span>Logger</span>
+            </div>
+            <div class="logger-steps">
+              <div class="logger-step">
+                <div class="logger-step-inline">
+                  <span class="logger-step-number">1.</span>Enable utagdb
+                  Cookie.
+                </div>
+                <div class="logger-step-subaction">
+                  <div class="logger-actions">
+                    <span
+                      id="utagdb-cookie-indicator"
+                      class="logger-cookie-indicator"
+                      aria-hidden="true"
+                    ></span>
+                    <button
+                      id="utagdb-cookie"
+                      class="storage-button"
+                      type="button"
+                    >
+                      Enable utagdb Cookie
+                    </button>
+                    <span
+                      id="utagdb-cookie-status"
+                      class="logger-cookie-status"
+                    ></span>
+                  </div>
+                </div>
               </div>
-              <div class="logger-step-subaction">
-                <div class="logger-actions">
-                  <span id="utagdb-cookie-indicator" class="logger-cookie-indicator" aria-hidden="true"></span>
-                  <button id="utagdb-cookie" class="storage-button" type="button">Enable utagdb Cookie</button>
-                  <span id="utagdb-cookie-status" class="logger-cookie-status"></span>
+              <div>
+                <span class="logger-step-number">2.</span>Click Start Recording
+                Logs.
+              </div>
+              <div>
+                <span class="logger-step-number">3.</span>Trigger utag.DB logs
+                on the page.
+              </div>
+              <div>
+                <span class="logger-step-number">4.</span>Click stop when done,
+                then check Logs Preview or Export.
+              </div>
+            </div>
+            <button id="record" class="record" type="button">
+              <span class="icon" aria-hidden="true"></span>
+              <span class="spinner" aria-hidden="true"></span>
+              <span id="record-label">Start Recording Logs</span>
+            </button>
+          </div>
+          <div class="logger-status-hidden">
+            <div id="destination" class="destination hidden">
+              <div>Stored in:</div>
+              <div id="destination-value" class="saving-value"></div>
+            </div>
+            <div id="saving" class="destination hidden">
+              <div>Stored session:</div>
+              <div id="saving-value" class="saving-value"></div>
+            </div>
+            <div id="count" class="destination hidden">
+              <div>Logs captured:</div>
+              <div id="count-value" class="saving-value"></div>
+            </div>
+            <div id="completed" class="destination hidden completed-block">
+              <div class="completed-title">SESSION COMPLETED</div>
+              <div>Stored in:</div>
+              <div id="completed-sent" class="saving-value"></div>
+              <div class="completed-label">Stored session:</div>
+              <div id="completed-saved" class="saving-value"></div>
+              <div class="completed-label">Logs captured:</div>
+              <div id="completed-count" class="saving-value"></div>
+            </div>
+            <div id="status" class="status"></div>
+          </div>
+          <div class="logger-preview-section">
+            <div class="storage-group">
+              <div class="storage-header">
+                <span>Logs Preview</span>
+                <span id="logger-preview-count">0</span>
+              </div>
+              <div class="iq-preview-shell">
+                <div class="iq-preview-toolbar">
+                  <span class="iq-preview-label">json</span>
+                  <div class="logger-toolbar-actions">
+                    <button
+                      id="logger-toggle"
+                      class="logger-toggle"
+                      type="button"
+                    >
+                      Show all
+                    </button>
+                    <button
+                      id="logger-clear"
+                      class="logger-toggle"
+                      type="button"
+                    >
+                      Clear Logs
+                    </button>
+                    <button id="logger-copy" class="iq-copy" type="button">
+                      <span class="iq-copy-icon" aria-hidden="true">
+                        <svg
+                          viewBox="0 0 20 20"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <mask
+                            id="copy-cutout-logger"
+                            maskUnits="userSpaceOnUse"
+                          >
+                            <rect
+                              x="0"
+                              y="0"
+                              width="20"
+                              height="20"
+                              fill="white"
+                            ></rect>
+                            <rect
+                              x="6"
+                              y="6"
+                              width="11"
+                              height="11"
+                              rx="2"
+                              fill="black"
+                            ></rect>
+                          </mask>
+                          <rect
+                            x="2.5"
+                            y="2.5"
+                            width="10"
+                            height="10"
+                            rx="2"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linejoin="round"
+                            stroke-linecap="round"
+                            mask="url(#copy-cutout-logger)"
+                          ></rect>
+                          <rect
+                            x="6.5"
+                            y="6.5"
+                            width="10"
+                            height="10"
+                            rx="2"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linejoin="round"
+                            stroke-linecap="round"
+                          ></rect>
+                        </svg>
+                      </span>
+                      <span class="iq-check" aria-hidden="true">
+                        <svg
+                          viewBox="0 0 12 10"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <path
+                            d="M1 5.5 L4.5 9 L11 1.5"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="square"
+                            stroke-linejoin="miter"
+                          ></path>
+                        </svg>
+                      </span>
+                      <span class="iq-copy-text">Copy</span>
+                    </button>
+                  </div>
+                </div>
+                <pre
+                  id="logger-preview"
+                  class="storage-value logger-preview"
+                ></pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="feature-session" class="feature-section" role="tabpanel">
+          <div class="status">Session Viewer is coming soon.</div>
+        </section>
+
+        <section id="feature-rules" class="feature-section" role="tabpanel">
+          <div class="status">Load Rules tooling is coming soon.</div>
+        </section>
+
+        <section id="feature-payloads" class="feature-section" role="tabpanel">
+          <div class="status">Payload Lab is coming soon.</div>
+        </section>
+
+        <section id="feature-iq" class="feature-section" role="tabpanel">
+          <div class="iq-form">
+            <div class="panel-section">
+              <div class="panel-section-title has-toggle">
+                <span class="panel-section-title-text"
+                  >Step 1<span>Get Token</span></span
+                >
+                <button
+                  class="section-toggle"
+                  type="button"
+                  data-section="iq-step-1"
+                  aria-expanded="true"
+                  aria-label="Toggle Step 1"
+                >
+                  <span class="section-toggle-icon" aria-hidden="true">▾</span>
+                </button>
+              </div>
+              <div class="panel-section-body" data-section-body="iq-step-1">
+                <label class="field">
+                  <span>Account</span>
+                  <input
+                    id="iq-account"
+                    type="text"
+                    placeholder="success-nathan-schrader"
+                  />
+                </label>
+                <label class="field">
+                  <span>Profile</span>
+                  <input id="iq-profile" type="text" placeholder="main" />
+                </label>
+                <label class="field">
+                  <span>Username</span>
+                  <input
+                    id="iq-username"
+                    type="text"
+                    placeholder="user@example.com"
+                  />
+                </label>
+                <label class="field">
+                  <span>API Key</span>
+                  <input id="iq-key" type="password" placeholder="API key" />
+                </label>
+                <div class="iq-actions">
+                  <button id="iq-auth" class="storage-button" type="button">
+                    <span class="btn-label">Get Token</span>
+                    <span class="btn-spinner" aria-hidden="true"></span>
+                  </button>
+                </div>
+                <label class="field">
+                  <span>Token</span>
+                  <input
+                    id="iq-token"
+                    type="password"
+                    placeholder="Paste token to reuse"
+                  />
+                </label>
+                <label class="field">
+                  <span>Host</span>
+                  <input
+                    id="iq-host"
+                    type="text"
+                    placeholder="us-west-2-platform.tealiumapis.com"
+                  />
+                </label>
+                <div class="storage-group">
+                  <div class="storage-header">
+                    <span>Recent Clients</span>
+                    <span id="iq-recent-count">0</span>
+                  </div>
+                  <div id="iq-recent-list" class="iq-recent-list"></div>
                 </div>
               </div>
             </div>
-            <div><span class="logger-step-number">2.</span>Click Start Recording Logs.</div>
-            <div><span class="logger-step-number">3.</span>Trigger utag.DB logs on the page.</div>
-            <div><span class="logger-step-number">4.</span>Click stop when done, then check Logs Preview or Export.</div>
+            <div class="panel-section">
+              <div class="panel-section-title has-toggle">
+                <span class="panel-section-title-text"
+                  >Step 2<span>Fetch Profile</span></span
+                >
+                <button
+                  class="section-toggle"
+                  type="button"
+                  data-section="iq-step-2"
+                  aria-expanded="true"
+                  aria-label="Toggle Step 2"
+                >
+                  <span class="section-toggle-icon" aria-hidden="true">▾</span>
+                </button>
+              </div>
+              <div class="panel-section-body" data-section-body="iq-step-2">
+                <div class="iq-includes">
+                  <label class="export-option"
+                    ><input
+                      type="checkbox"
+                      class="iq-include"
+                      value="loadRules"
+                      checked
+                    />
+                    loadRules</label
+                  >
+                  <label class="export-option"
+                    ><input
+                      type="checkbox"
+                      class="iq-include"
+                      value="tags"
+                      checked
+                    />
+                    tags</label
+                  >
+                  <label class="export-option"
+                    ><input
+                      type="checkbox"
+                      class="iq-include"
+                      value="tags.templateList"
+                    />
+                    tags.templateList</label
+                  >
+                  <label class="export-option"
+                    ><input
+                      type="checkbox"
+                      class="iq-include"
+                      value="tags.template"
+                    />
+                    tags.template</label
+                  >
+                  <label class="export-option"
+                    ><input
+                      type="checkbox"
+                      class="iq-include"
+                      value="extensions"
+                      checked
+                    />
+                    extensions</label
+                  >
+                  <label class="export-option"
+                    ><input
+                      type="checkbox"
+                      class="iq-include"
+                      value="variables"
+                      checked
+                    />
+                    variables</label
+                  >
+                  <label class="export-option"
+                    ><input type="checkbox" class="iq-include" value="events" />
+                    events</label
+                  >
+                  <label class="export-option"
+                    ><input
+                      type="checkbox"
+                      class="iq-include"
+                      value="versionIDs"
+                    />
+                    versionIDs</label
+                  >
+                </div>
+                <label class="field">
+                  <span>Custom includes (comma separated)</span>
+                  <input
+                    id="iq-includes-custom"
+                    type="text"
+                    placeholder="loadRules, tags.templateList"
+                  />
+                </label>
+                <div class="iq-actions">
+                  <button id="iq-fetch" class="storage-button" type="button">
+                    <span class="btn-label">Fetch iQ Profile</span>
+                    <span class="btn-spinner" aria-hidden="true"></span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-          <button id="record" class="record" type="button">
-            <span class="icon" aria-hidden="true"></span>
-            <span class="spinner" aria-hidden="true"></span>
-            <span id="record-label">Start Recording Logs</span>
-          </button>
-        </div>
-        <div class="logger-status-hidden">
-          <div id="destination" class="destination hidden">
-            <div>Stored in:</div>
-            <div id="destination-value" class="saving-value"></div>
+          <div id="iq-status" class="status">No profile fetched yet.</div>
+          <div id="iq-meta-section" class="panel-section" hidden>
+            <div class="panel-section-title">
+              <span>Snapshot</span><span>Request</span>
+            </div>
+            <div id="iq-meta" class="iq-meta">
+              <div id="iq-meta-url" class="iq-meta-url"></div>
+              <div id="iq-meta-time" class="iq-meta-time"></div>
+            </div>
           </div>
-          <div id="saving" class="destination hidden">
-            <div>Stored session:</div>
-            <div id="saving-value" class="saving-value"></div>
-          </div>
-          <div id="count" class="destination hidden">
-            <div>Logs captured:</div>
-            <div id="count-value" class="saving-value"></div>
-          </div>
-          <div id="completed" class="destination hidden completed-block">
-            <div class="completed-title">SESSION COMPLETED</div>
-            <div>Stored in:</div>
-            <div id="completed-sent" class="saving-value"></div>
-            <div class="completed-label">Stored session:</div>
-            <div id="completed-saved" class="saving-value"></div>
-            <div class="completed-label">Logs captured:</div>
-            <div id="completed-count" class="saving-value"></div>
-          </div>
-          <div id="status" class="status"></div>
-        </div>
-        <div class="logger-preview-section">
           <div class="storage-group">
             <div class="storage-header">
-              <span>Logs Preview</span>
-              <span id="logger-preview-count">0</span>
+              <span>Profile Preview</span>
+              <span id="iq-preview-count">0</span>
             </div>
             <div class="iq-preview-shell">
               <div class="iq-preview-toolbar">
                 <span class="iq-preview-label">json</span>
-                <div class="logger-toolbar-actions">
-                  <button id="logger-toggle" class="logger-toggle" type="button">
-                    Show all
-                  </button>
-                  <button id="logger-clear" class="logger-toggle" type="button">
-                    Clear Logs
-                  </button>
-                  <button id="logger-copy" class="iq-copy" type="button">
-                    <span class="iq-copy-icon" aria-hidden="true">
-                      <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                        <mask id="copy-cutout-logger" maskUnits="userSpaceOnUse">
-                          <rect x="0" y="0" width="20" height="20" fill="white"></rect>
-                          <rect x="6" y="6" width="11" height="11" rx="2" fill="black"></rect>
-                        </mask>
-                        <rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" mask="url(#copy-cutout-logger)"></rect>
-                        <rect x="6.5" y="6.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></rect>
-                      </svg>
-                    </span>
-                    <span class="iq-check" aria-hidden="true">
-                      <svg viewBox="0 0 12 10" aria-hidden="true" focusable="false">
-                        <path d="M1 5.5 L4.5 9 L11 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"></path>
-                      </svg>
-                    </span>
-                    <span class="iq-copy-text">Copy</span>
-                  </button>
-                </div>
-              </div>
-              <pre id="logger-preview" class="storage-value logger-preview"></pre>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="feature-session" class="feature-section" role="tabpanel">
-        <div class="status">Session Viewer is coming soon.</div>
-      </section>
-
-      <section id="feature-rules" class="feature-section" role="tabpanel">
-        <div class="status">Load Rules tooling is coming soon.</div>
-      </section>
-
-      <section id="feature-payloads" class="feature-section" role="tabpanel">
-        <div class="status">Payload Lab is coming soon.</div>
-      </section>
-
-      <section id="feature-iq" class="feature-section" role="tabpanel">
-        <div class="iq-form">
-          <div class="panel-section">
-            <div class="panel-section-title has-toggle">
-              <span class="panel-section-title-text">Step 1<span>Get Token</span></span>
-              <button class="section-toggle" type="button" data-section="iq-step-1" aria-expanded="true" aria-label="Toggle Step 1">
-                <span class="section-toggle-icon" aria-hidden="true">▾</span>
-              </button>
-            </div>
-            <div class="panel-section-body" data-section-body="iq-step-1">
-              <label class="field">
-                <span>Account</span>
-                <input id="iq-account" type="text" placeholder="success-nathan-schrader" />
-              </label>
-              <label class="field">
-                <span>Profile</span>
-                <input id="iq-profile" type="text" placeholder="main" />
-              </label>
-              <label class="field">
-                <span>Username</span>
-                <input id="iq-username" type="text" placeholder="user@example.com" />
-              </label>
-              <label class="field">
-                <span>API Key</span>
-                <input id="iq-key" type="password" placeholder="API key" />
-              </label>
-              <div class="iq-actions">
-                <button id="iq-auth" class="storage-button" type="button">
-                  <span class="btn-label">Get Token</span>
-                  <span class="btn-spinner" aria-hidden="true"></span>
+                <button id="iq-copy" class="iq-copy" type="button">
+                  <span class="iq-copy-icon" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 20 20"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <mask id="copy-cutout" maskUnits="userSpaceOnUse">
+                        <rect
+                          x="0"
+                          y="0"
+                          width="20"
+                          height="20"
+                          fill="white"
+                        ></rect>
+                        <rect
+                          x="6"
+                          y="6"
+                          width="11"
+                          height="11"
+                          rx="2.5"
+                          fill="black"
+                        ></rect>
+                      </mask>
+                      <rect
+                        x="2.5"
+                        y="2.5"
+                        width="10"
+                        height="10"
+                        rx="2"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                        mask="url(#copy-cutout)"
+                      ></rect>
+                      <rect
+                        x="6.5"
+                        y="6.5"
+                        width="10"
+                        height="10"
+                        rx="2"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linejoin="round"
+                        stroke-linecap="round"
+                      ></rect>
+                    </svg>
+                  </span>
+                  <span class="iq-check" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 12 10"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <path
+                        d="M1 5.5 L4.5 9 L11 1.5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="square"
+                        stroke-linejoin="miter"
+                      ></path>
+                    </svg>
+                  </span>
+                  <span class="iq-copy-text">Copy</span>
                 </button>
               </div>
-              <label class="field">
-                <span>Token</span>
-                <input id="iq-token" type="password" placeholder="Paste token to reuse" />
-              </label>
-              <label class="field">
-                <span>Host</span>
-                <input id="iq-host" type="text" placeholder="us-west-2-platform.tealiumapis.com" />
-              </label>
-              <div class="storage-group">
-                <div class="storage-header">
-                  <span>Recent Clients</span>
-                  <span id="iq-recent-count">0</span>
-                </div>
-                <div id="iq-recent-list" class="iq-recent-list"></div>
+              <pre id="iq-preview" class="storage-value iq-preview"></pre>
+            </div>
+          </div>
+        </section>
+
+        <section id="feature-consent" class="feature-section" role="tabpanel">
+          <div class="consent-controls">
+            <div id="consent-meta" class="consent-meta"></div>
+            <button id="consent-refresh" class="storage-button" type="button">
+              Refresh
+            </button>
+          </div>
+          <div id="consent-status" class="status">No snapshot yet.</div>
+
+          <div class="consent-summary">
+            <div class="consent-row-group">
+              <div class="consent-row">
+                <span>Regulatory Model</span>
+                <span id="consent-regulatory" class="consent-pill">Unknown</span>
               </div>
+              <div id="consent-regulatory-sources" class="consent-subitems"></div>
             </div>
-          </div>
-          <div class="panel-section">
-            <div class="panel-section-title has-toggle">
-              <span class="panel-section-title-text">Step 2<span>Fetch Profile</span></span>
-              <button class="section-toggle" type="button" data-section="iq-step-2" aria-expanded="true" aria-label="Toggle Step 2">
-                <span class="section-toggle-icon" aria-hidden="true">▾</span>
-              </button>
-            </div>
-            <div class="panel-section-body" data-section-body="iq-step-2">
-              <div class="iq-includes">
-                <label class="export-option"><input type="checkbox" class="iq-include" value="loadRules" checked /> loadRules</label>
-                <label class="export-option"><input type="checkbox" class="iq-include" value="tags" checked /> tags</label>
-                <label class="export-option"><input type="checkbox" class="iq-include" value="tags.templateList" /> tags.templateList</label>
-                <label class="export-option"><input type="checkbox" class="iq-include" value="tags.template" /> tags.template</label>
-                <label class="export-option"><input type="checkbox" class="iq-include" value="extensions" checked /> extensions</label>
-                <label class="export-option"><input type="checkbox" class="iq-include" value="variables" checked /> variables</label>
-                <label class="export-option"><input type="checkbox" class="iq-include" value="events" /> events</label>
-                <label class="export-option"><input type="checkbox" class="iq-include" value="versionIDs" /> versionIDs</label>
+            <div class="consent-row-group">
+              <div class="consent-row">
+                <span>CMP Detected</span>
+                <span id="consent-required" class="consent-pill">Unknown</span>
               </div>
-              <label class="field">
-                <span>Custom includes (comma separated)</span>
-                <input id="iq-includes-custom" type="text" placeholder="loadRules, tags.templateList" />
-              </label>
-              <div class="iq-actions">
-                <button id="iq-fetch" class="storage-button" type="button">
-                  <span class="btn-label">Fetch iQ Profile</span>
-                  <span class="btn-spinner" aria-hidden="true"></span>
-                </button>
-              </div>
+              <div id="consent-cmps" class="consent-subitems"></div>
             </div>
-          </div>
-        </div>
-        <div id="iq-status" class="status">No profile fetched yet.</div>
-        <div id="iq-meta-section" class="panel-section" hidden>
-          <div class="panel-section-title"><span>Snapshot</span><span>Request</span></div>
-          <div id="iq-meta" class="iq-meta">
-            <div id="iq-meta-url" class="iq-meta-url"></div>
-            <div id="iq-meta-time" class="iq-meta-time"></div>
-          </div>
-        </div>
-        <div class="storage-group">
-          <div class="storage-header">
-            <span>Profile Preview</span>
-            <span id="iq-preview-count">0</span>
-          </div>
-          <div class="iq-preview-shell">
-            <div class="iq-preview-toolbar">
-              <span class="iq-preview-label">json</span>
-              <button id="iq-copy" class="iq-copy" type="button">
-                <span class="iq-copy-icon" aria-hidden="true">
-                  <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                    <mask id="copy-cutout" maskUnits="userSpaceOnUse">
-                      <rect x="0" y="0" width="20" height="20" fill="white"></rect>
-                      <rect x="6" y="6" width="11" height="11" rx="2.5" fill="black"></rect>
-                    </mask>
-                    <rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" mask="url(#copy-cutout)"></rect>
-                    <rect x="6.5" y="6.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></rect>
-                  </svg>
-                </span>
-                <span class="iq-check" aria-hidden="true">
-                  <svg viewBox="0 0 12 10" aria-hidden="true" focusable="false">
-                    <path d="M1 5.5 L4.5 9 L11 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"></path>
-                  </svg>
-                </span>
-                <span class="iq-copy-text">Copy</span>
-              </button>
+            <div class="consent-row">
+              <span>Consent Data Stored</span>
+              <span id="consent-present" class="consent-pill">Unknown</span>
             </div>
-            <pre id="iq-preview" class="storage-value iq-preview"></pre>
+            <div class="consent-row">
+              <span>GPC Signal</span>
+              <span id="consent-gpc" class="consent-pill">Unknown</span>
+            </div>
+            <div class="consent-row">
+              <span>Consent State</span>
+              <span id="consent-state" class="consent-pill">Unknown</span>
+            </div>
+            <div id="consent-categories" class="consent-subitems"></div>
           </div>
-        </div>
-      </section>
 
-      <section id="feature-consent" class="feature-section" role="tabpanel">
-        <div class="consent-controls">
-          <div id="consent-meta" class="consent-meta"></div>
-          <button id="consent-refresh" class="storage-button" type="button">Refresh</button>
-        </div>
-        <div id="consent-status" class="status">No snapshot yet.</div>
-
-        <div class="consent-summary">
-          <div class="consent-row">
-            <span>Consent Required</span>
-            <span id="consent-required" class="consent-pill">Unknown</span>
+          <div class="storage-group">
+            <div class="storage-header">
+              <span>Signals</span>
+              <span id="consent-signal-count">0</span>
+            </div>
+            <div id="consent-signal-list" class="storage-list"></div>
           </div>
-          <div class="consent-row">
-            <span>Consent Present</span>
-            <span id="consent-present" class="consent-pill">Unknown</span>
+        </section>
+
+        <section id="feature-network" class="feature-section" role="tabpanel">
+          <div class="status">Network Watch is coming soon.</div>
+        </section>
+
+        <section id="feature-events" class="feature-section" role="tabpanel">
+          <div class="status">Event Stream is coming soon.</div>
+        </section>
+
+        <section id="feature-storage" class="feature-section" role="tabpanel">
+          <div class="storage-controls">
+            <button id="storage-snapshot" class="storage-button" type="button">
+              Snapshot
+            </button>
+            <label class="storage-search">
+              <input
+                id="storage-search"
+                type="text"
+                placeholder="Filter keys/values"
+              />
+            </label>
           </div>
-          <div class="consent-row">
-            <span>GPC Signal</span>
-            <span id="consent-gpc" class="consent-pill">Unknown</span>
+          <div id="storage-status" class="status">No snapshot yet.</div>
+
+          <div class="storage-group">
+            <div class="storage-header">
+              <span>Cookies</span>
+              <span id="storage-cookies-count">0</span>
+            </div>
+            <div id="storage-cookies-list" class="storage-list"></div>
           </div>
-          <div class="consent-row">
-            <span>Consent State</span>
-            <span id="consent-state" class="consent-pill">Unknown</span>
+
+          <div class="storage-group">
+            <div class="storage-header">
+              <span>Local Storage</span>
+              <span id="storage-local-count">0</span>
+            </div>
+            <div id="storage-local-list" class="storage-list"></div>
           </div>
-          <div id="consent-categories" class="consent-subitems"></div>
-        </div>
 
-        <div class="storage-group">
-          <div class="storage-header">
-            <span>Signals</span>
-            <span id="consent-signal-count">0</span>
+          <div class="storage-group">
+            <div class="storage-header">
+              <span>Session Storage</span>
+              <span id="storage-session-count">0</span>
+            </div>
+            <div id="storage-session-list" class="storage-list"></div>
           </div>
-          <div id="consent-signal-list" class="storage-list"></div>
-        </div>
-      </section>
 
-      <section id="feature-network" class="feature-section" role="tabpanel">
-        <div class="status">Network Watch is coming soon.</div>
-      </section>
-
-      <section id="feature-events" class="feature-section" role="tabpanel">
-        <div class="status">Event Stream is coming soon.</div>
-      </section>
-
-      <section id="feature-storage" class="feature-section" role="tabpanel">
-        <div class="storage-controls">
-          <button id="storage-snapshot" class="storage-button" type="button">Snapshot</button>
-          <label class="storage-search">
-            <input id="storage-search" type="text" placeholder="Filter keys/values" />
-          </label>
-        </div>
-        <div id="storage-status" class="status">No snapshot yet.</div>
-
-        <div class="storage-group">
-          <div class="storage-header">
-            <span>Cookies</span>
-            <span id="storage-cookies-count">0</span>
+          <div class="storage-group">
+            <div class="storage-header">
+              <span>utag.data</span>
+              <span id="storage-utag-count">0</span>
+            </div>
+            <div id="storage-utag-list" class="storage-list"></div>
           </div>
-          <div id="storage-cookies-list" class="storage-list"></div>
-        </div>
+        </section>
 
-        <div class="storage-group">
-          <div class="storage-header">
-            <span>Local Storage</span>
-            <span id="storage-local-count">0</span>
-          </div>
-          <div id="storage-local-list" class="storage-list"></div>
-        </div>
-
-        <div class="storage-group">
-          <div class="storage-header">
-            <span>Session Storage</span>
-            <span id="storage-session-count">0</span>
-          </div>
-          <div id="storage-session-list" class="storage-list"></div>
-        </div>
-
-        <div class="storage-group">
-          <div class="storage-header">
-            <span>utag.data</span>
-            <span id="storage-utag-count">0</span>
-          </div>
-          <div id="storage-utag-list" class="storage-list"></div>
-        </div>
-      </section>
-
-      <section id="feature-qa" class="feature-section" role="tabpanel">
-        <div class="status">QA Checklist is coming soon.</div>
-      </section>
-
+        <section id="feature-qa" class="feature-section" role="tabpanel">
+          <div class="status">QA Checklist is coming soon.</div>
+        </section>
       </div>
 
-      <div id="export-view" class="feature-section" role="tabpanel" aria-hidden="true">
+      <div
+        id="export-view"
+        class="feature-section"
+        role="tabpanel"
+        aria-hidden="true"
+      >
         <div class="export-sections">
           <div class="panel-section export-section">
-            <div class="panel-section-title"><span>Case File</span><span>Contents</span></div>
+            <div class="panel-section-title">
+              <span>Case File</span><span>Contents</span>
+            </div>
             <div class="export-options">
               <div class="export-option-group">
                 <div class="export-subtitle">Include</div>
@@ -1852,7 +2278,11 @@
                     <span>Include utag.DB</span>
                   </label>
                   <label class="export-option">
-                    <input id="export-include-consent" type="checkbox" checked />
+                    <input
+                      id="export-include-consent"
+                      type="checkbox"
+                      checked
+                    />
                     <span>Include Consent</span>
                   </label>
                   <label class="export-option">
@@ -1876,16 +2306,22 @@
               </div>
             </div>
             <div class="storage-controls">
-              <button id="export-download" class="storage-button" type="button">Export Case File</button>
+              <button id="export-download" class="storage-button" type="button">
+                Export Case File
+              </button>
             </div>
           </div>
         </div>
         <div class="storage-group">
           <div class="storage-header">
             <span>Case File Preview</span>
-            <button id="export-refresh" class="storage-button" type="button">Refresh Preview</button>
+            <button id="export-refresh" class="storage-button" type="button">
+              Refresh Preview
+            </button>
           </div>
-          <div id="export-status-inline" class="export-status-inline">No preview yet.</div>
+          <div id="export-status-inline" class="export-status-inline">
+            No preview yet.
+          </div>
           <div id="export-size" class="export-size"></div>
           <div class="iq-preview-shell">
             <div class="iq-preview-toolbar">
@@ -1894,16 +2330,59 @@
                 <span class="iq-copy-icon" aria-hidden="true">
                   <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
                     <mask id="copy-cutout-export" maskUnits="userSpaceOnUse">
-                      <rect x="0" y="0" width="20" height="20" fill="white"></rect>
-                      <rect x="6" y="6" width="11" height="11" rx="2" fill="black"></rect>
+                      <rect
+                        x="0"
+                        y="0"
+                        width="20"
+                        height="20"
+                        fill="white"
+                      ></rect>
+                      <rect
+                        x="6"
+                        y="6"
+                        width="11"
+                        height="11"
+                        rx="2"
+                        fill="black"
+                      ></rect>
                     </mask>
-                    <rect x="2.5" y="2.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" mask="url(#copy-cutout-export)"></rect>
-                    <rect x="6.5" y="6.5" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></rect>
+                    <rect
+                      x="2.5"
+                      y="2.5"
+                      width="10"
+                      height="10"
+                      rx="2"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                      mask="url(#copy-cutout-export)"
+                    ></rect>
+                    <rect
+                      x="6.5"
+                      y="6.5"
+                      width="10"
+                      height="10"
+                      rx="2"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                    ></rect>
                   </svg>
                 </span>
                 <span class="iq-check" aria-hidden="true">
                   <svg viewBox="0 0 12 10" aria-hidden="true" focusable="false">
-                    <path d="M1 5.5 L4.5 9 L11 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"></path>
+                    <path
+                      d="M1 5.5 L4.5 9 L11 1.5"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="square"
+                      stroke-linejoin="miter"
+                    ></path>
                   </svg>
                 </span>
                 <span class="iq-copy-text">Copy</span>
@@ -1913,7 +2392,12 @@
           </div>
         </div>
       </div>
-      <div id="recent-view" class="feature-section" role="tabpanel" aria-hidden="true">
+      <div
+        id="recent-view"
+        class="feature-section"
+        role="tabpanel"
+        aria-hidden="true"
+      >
         <div class="status" id="recent-status">No exports yet.</div>
         <div id="recent-list" class="recent-list"></div>
       </div>

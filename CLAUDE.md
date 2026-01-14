@@ -187,9 +187,10 @@ utagdb-logger/
   captured_at: ISO timestamp,
   tab_uuid: string,
   gpc: { value: "On"|"Off"|"Unknown", tone: "ok"|null },
-  required: { value: string, tone: string, signals: string[] },
-  present: { value: string, tone: string, signals: string[] },
+  required: { value: string, tone: string, signals: string[] },  // CMP detection (not legal requirement)
+  present: { value: string, tone: string, signals: string[] },   // Consent data stored (by user OR site default)
   state: { value: string, tone: string },
+  regulatory_model: { value: string, sources: string[] },        // GDPR/CCPA/Mixed/Unknown + detection sources
   categories: [{ name: string, accepted: boolean }],
   signals: [{ label: string, value: any }]
 }
@@ -275,7 +276,8 @@ STORAGE_TRIM_TARGET_BYTES = 6 * 1024 * 1024     // 6MB
 │  - Line numbers per log entry (non-selectable)          │
 │  Consent Monitor Card:                                  │
 │  - Refresh button, auto-refresh on open                 │
-│  - Required / Present / GPC / State indicators          │
+│  - Regulatory Model (GDPR/CCPA) with detection sources  │
+│  - CMP Detected / Consent Data Stored / GPC / State     │
 │  - Category list with canonical labels                  │
 │  - Signal list in code containers                       │
 │  iQ Profile Card:                                       │
@@ -678,7 +680,7 @@ iqProfileSnapshot:tab:<uuid>: IqProfile
 2. **Tab UUID vs Tab ID:** Tab ID is Chrome's internal ID (changes on navigation), Tab UUID is persistent per session (stored in sessionStorage)
 3. **Session vs Tab:** A "session" is a recording session (start/stop), a "tab" is a browser tab
 4. **Storage Keys:** Session logs use `sessionId`, other data uses `tab_uuid`
-5. **Consent Deduping:** Uses core signature (required+present+state) to avoid flicker
+5. **Consent Deduping:** Uses core signature (cmp_detected+present+state) to avoid flicker during polling
 6. **Side Panel State:** Managed via `enabledSidePanelTabs` Set, closes when switching to non-enabled tabs
 
 ### Future Enhancement Areas

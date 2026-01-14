@@ -212,9 +212,11 @@ function extractOneTrustGpcFlags(consentValue) {
     const params = new URLSearchParams(decoded);
     const isGpcEnabled = params.get('isGpcEnabled');
     const browserGpcFlag = params.get('browserGpcFlag');
+    const isIABGlobal = params.get('isIABGlobal');
     return {
       isGpcEnabled: isGpcEnabled !== null ? isGpcEnabled : null,
       browserGpcFlag: browserGpcFlag !== null ? browserGpcFlag : null,
+      isIABGlobal: isIABGlobal !== null ? isIABGlobal : null,
     };
   } catch (err) {
     // ignore
@@ -910,6 +912,7 @@ async function collectConsentSnapshot() {
   }
 
   const consentRequiredSignals = [];
+  const detectedCmps = [];
   let requiredOverride = null;
   const setRequiredOverride = (value) => {
     if (!requiredOverride) {
@@ -921,33 +924,45 @@ async function collectConsentSnapshot() {
   }
   if (typeof window.__tcfapi === 'function') {
     consentRequiredSignals.push('__tcfapi');
+    detectedCmps.push('TCF (IAB Framework)');
   }
   if (onetrustConsent || onetrustActiveGroups) {
     consentRequiredSignals.push('OneTrust');
+    detectedCmps.push('OneTrust');
   }
   if (cookiebotData) {
     consentRequiredSignals.push('Cookiebot');
+    detectedCmps.push('Cookiebot');
   }
   if (cookieYesData) {
     consentRequiredSignals.push('CookieYes');
+    detectedCmps.push('CookieYes');
   }
   if (didomiData) {
     consentRequiredSignals.push('Didomi');
+    detectedCmps.push('Didomi');
   }
   if (trustArcData) {
     consentRequiredSignals.push('TrustArc');
+    detectedCmps.push('TrustArc');
   }
   if (usercentricsData) {
     consentRequiredSignals.push('Usercentrics');
+    detectedCmps.push('Usercentrics');
   }
   if (dcrData) {
     consentRequiredSignals.push('Digital Control Room');
+    detectedCmps.push('Digital Control Room');
   }
   if (tciSignals.length > 0) {
     consentRequiredSignals.push('tci.*');
   }
   if (optOutData.gpc === true || optOutData.optOutCookie) {
     consentRequiredSignals.push('GPC/Opt-out');
+  }
+
+  if (consentRequiredSignals.length > 0 && detectedCmps.length === 0) {
+    detectedCmps.push('Detected (Generic)');
   }
 
   if (cookiebotData && cookiebotData.gdprApplies === false) {
@@ -1176,6 +1191,54 @@ async function collectConsentSnapshot() {
     stateTone = 'warn';
   }
 
+  const regulatoryModelSources = [];
+  let regulatoryModel = 'Unknown';
+  let hasGdpr = false;
+  let hasCcpa = false;
+
+  if (tcfData && tcfData.gdprApplies === true) {
+    hasGdpr = true;
+    regulatoryModelSources.push('TCF gdprApplies=true');
+  } else if (tcfData && tcfData.gdprApplies === false) {
+    hasCcpa = true;
+    regulatoryModelSources.push('TCF gdprApplies=false');
+  }
+
+  if (onetrustGpcFlags && onetrustGpcFlags.isIABGlobal === 'true') {
+    hasGdpr = true;
+    regulatoryModelSources.push('OneTrust isIABGlobal=true');
+  } else if (onetrustGpcFlags && onetrustGpcFlags.isIABGlobal === 'false') {
+    hasCcpa = true;
+    regulatoryModelSources.push('OneTrust isIABGlobal=false');
+  }
+
+  if (cookiebotData && cookiebotData.gdprApplies === true) {
+    hasGdpr = true;
+    regulatoryModelSources.push('Cookiebot gdprApplies=true');
+  } else if (cookiebotData && cookiebotData.gdprApplies === false) {
+    hasCcpa = true;
+    regulatoryModelSources.push('Cookiebot gdprApplies=false');
+  }
+
+  if (uspData && uspData.uspString) {
+    hasCcpa = true;
+    regulatoryModelSources.push(`USP string present (${uspData.uspString})`);
+  }
+
+  if (trustArcData && trustArcData.cookieName &&
+      trustArcData.cookieName.toLowerCase().includes('gdpr')) {
+    hasGdpr = true;
+    regulatoryModelSources.push(`TrustArc GDPR cookie (${trustArcData.cookieName})`);
+  }
+
+  if (hasGdpr && hasCcpa) {
+    regulatoryModel = 'Mixed (GDPR + CCPA)';
+  } else if (hasGdpr) {
+    regulatoryModel = 'GDPR (Opt-In)';
+  } else if (hasCcpa) {
+    regulatoryModel = 'CCPA (Opt-Out)';
+  }
+
   return {
     url: location.href,
     captured_at: new Date().toISOString(),
@@ -1196,6 +1259,7 @@ async function collectConsentSnapshot() {
       value: requiredValue,
       tone: requiredValue === 'Yes' ? 'ok' : requiredValue === 'No' ? 'ok' : null,
       signals: consentRequiredSignals,
+      detected_cmps: detectedCmps,
     },
     present: {
       value: presentValue,
@@ -1209,6 +1273,10 @@ async function collectConsentSnapshot() {
     state: {
       value: stateValue,
       tone: stateTone,
+    },
+    regulatory_model: {
+      value: regulatoryModel,
+      sources: regulatoryModelSources,
     },
     categories: Array.from(categoryStatusMap.values()),
     signals,

@@ -470,9 +470,12 @@ const setStorageEmpty = (message) => {
 const consentRefreshButton = document.getElementById('consent-refresh');
 const consentStatus = document.getElementById('consent-status');
 const consentRequired = document.getElementById('consent-required');
+const consentCmps = document.getElementById('consent-cmps');
 const consentPresent = document.getElementById('consent-present');
 const consentState = document.getElementById('consent-state');
 const consentGpc = document.getElementById('consent-gpc');
+const consentRegulatory = document.getElementById('consent-regulatory');
+const consentRegulatorySources = document.getElementById('consent-regulatory-sources');
 const consentMeta = document.getElementById('consent-meta');
 const consentCategories = document.getElementById('consent-categories');
 const consentSignalList = document.getElementById('consent-signal-list');
@@ -2126,11 +2129,59 @@ const setConsentEmpty = (message) => {
   setConsentPill(consentPresent, 'Unknown', null);
   setConsentPill(consentState, 'Unknown', null);
   setConsentPill(consentGpc, 'Unknown', null);
+  setConsentPill(consentRegulatory, 'Unknown', null);
+  renderRegulatorySourcesList([]);
+  renderCmpsList([]);
   renderConsentCategories([]);
   renderConsentSignals([]);
   if (consentMeta) {
     consentMeta.textContent = '';
   }
+};
+
+const renderRegulatorySourcesList = (sources) => {
+  if (!consentRegulatorySources) {
+    return;
+  }
+  consentRegulatorySources.innerHTML = '';
+  if (!Array.isArray(sources) || sources.length === 0) {
+    return;
+  }
+  const header = document.createElement('div');
+  header.className = 'storage-key';
+  header.style.fontWeight = '600';
+  header.style.marginTop = '8px';
+  header.style.marginBottom = '4px';
+  header.textContent = 'Detection Sources:';
+  consentRegulatorySources.appendChild(header);
+  sources.forEach((source) => {
+    const item = document.createElement('div');
+    item.className = 'storage-item';
+    const value = document.createElement('div');
+    value.className = 'storage-value';
+    value.textContent = source;
+    item.appendChild(value);
+    consentRegulatorySources.appendChild(item);
+  });
+};
+
+const renderCmpsList = (cmps) => {
+  if (!consentCmps) {
+    return;
+  }
+  consentCmps.innerHTML = '';
+  if (!Array.isArray(cmps) || cmps.length === 0) {
+    return;
+  }
+  cmps.forEach((cmp) => {
+    const item = document.createElement('div');
+    item.className = 'storage-item';
+    const value = document.createElement('div');
+    value.className = 'storage-value';
+    value.textContent = cmp;
+    item.appendChild(value);
+    consentCmps.appendChild(item);
+  });
 };
 
 const renderConsentCategories = (categories) => {
@@ -2222,10 +2273,14 @@ const applyConsentSnapshot = (payload) => {
   const present = payload.present || {};
   const state = payload.state || {};
   const gpc = payload.gpc || {};
+  const regulatory = payload.regulatory_model || {};
   setConsentPill(consentRequired, required.value || 'Unknown', required.tone);
   setConsentPill(consentPresent, present.value || 'Unknown', present.tone);
   setConsentPill(consentState, state.value || 'Unknown', state.tone);
   setConsentPill(consentGpc, gpc.value || 'Unknown', gpc.tone);
+  setConsentPill(consentRegulatory, regulatory.value || 'Unknown', null);
+  renderRegulatorySourcesList(regulatory.sources || []);
+  renderCmpsList(required.detected_cmps || []);
   renderConsentCategories(payload.categories || []);
   if (consentMeta) {
     const capturedAt = payload.captured_at
