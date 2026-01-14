@@ -475,6 +475,7 @@ const consentPresent = document.getElementById('consent-present');
 const consentSources = document.getElementById('consent-sources');
 const consentState = document.getElementById('consent-state');
 const consentGpc = document.getElementById('consent-gpc');
+const consentGpcSources = document.getElementById('consent-gpc-sources');
 const consentRegulatory = document.getElementById('consent-regulatory');
 const consentRegulatorySources = document.getElementById('consent-regulatory-sources');
 const consentMeta = document.getElementById('consent-meta');
@@ -2186,6 +2187,7 @@ const setConsentEmpty = (message) => {
   renderRegulatorySourcesList([]);
   renderCmpsList([]);
   renderConsentSourcesList([]);
+  renderGpcSourcesList([]);
   renderConsentCategories([]);
   renderConsentSignals([]);
   if (consentMeta) {
@@ -2263,6 +2265,32 @@ const renderConsentSourcesList = (sources) => {
     value.textContent = source;
     item.appendChild(value);
     consentSources.appendChild(item);
+  });
+};
+
+const renderGpcSourcesList = (sources) => {
+  if (!consentGpcSources) {
+    return;
+  }
+  consentGpcSources.innerHTML = '';
+  if (!Array.isArray(sources) || sources.length === 0) {
+    return;
+  }
+  const header = document.createElement('div');
+  header.className = 'storage-item';
+  header.style.fontWeight = '500';
+  header.style.color = '#888';
+  header.style.fontSize = '0.85em';
+  header.textContent = 'Detection Sources:';
+  consentGpcSources.appendChild(header);
+  sources.forEach((source) => {
+    const item = document.createElement('div');
+    item.className = 'storage-item';
+    const value = document.createElement('div');
+    value.className = 'storage-value';
+    value.textContent = source;
+    item.appendChild(value);
+    consentGpcSources.appendChild(item);
   });
 };
 
@@ -2360,6 +2388,7 @@ const applyConsentSnapshot = (payload) => {
   setConsentPill(consentPresent, present.value || 'Unknown', present.tone);
   renderConsentState(state.value || 'Unknown', state.tone);
   setConsentPill(consentGpc, gpc.value || 'Unknown', gpc.tone);
+  renderGpcSourcesList(gpc.sources || []);
   setConsentPill(consentRegulatory, regulatory.value || 'Unknown', null);
   renderRegulatorySourcesList(regulatory.sources || []);
   renderCmpsList(required.detected_cmps || []);

@@ -1247,13 +1247,19 @@ async function collectConsentSnapshot() {
       const gpcValue = normalizeGpcValue(
         gpcFromPage !== undefined ? gpcFromPage : navigatorGpc
       );
+      const sources = [];
+      if (gpcFromPage !== undefined) {
+        sources.push('navigator.globalPrivacyControl (page context)');
+      } else if (navigatorGpc !== undefined) {
+        sources.push('navigator.globalPrivacyControl (content script)');
+      }
       if (gpcValue === true) {
-        return { value: 'On', tone: 'ok' };
+        return { value: 'On', tone: 'ok', sources };
       }
       if (gpcValue === false) {
-        return { value: 'Off', tone: null };
+        return { value: 'Off', tone: null, sources };
       }
-      return { value: 'Unknown', tone: null };
+      return { value: 'Unknown', tone: null, sources };
     })(),
     required: {
       value: requiredValue,
