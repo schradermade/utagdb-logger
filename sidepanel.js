@@ -661,9 +661,38 @@ const normalizeValue = (value) => {
   }
 };
 
-const formatCaseFileName = (timestamp) => {
-  const safeStamp = timestamp.replace(/[:.]/g, '-');
-  return `case-file-${safeStamp}.json`;
+const extractDomainName = (url) => {
+  if (!url || typeof url !== 'string') {
+    return null;
+  }
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname;
+    // Remove www. prefix if present
+    const withoutWww = hostname.replace(/^www\./, '');
+    // Extract domain name (e.g., "otterbox.com" -> "otterbox")
+    const parts = withoutWww.split('.');
+    // Return the first part (domain name)
+    return parts[0] || null;
+  } catch (err) {
+    return null;
+  }
+};
+
+const formatCaseFileName = (date, domain) => {
+  // Format date in local time: YYYY-MM-DD-HH-MM-SS
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const timestamp = `${year}-${month}-${day}-${hours}-${minutes}-${seconds}`;
+
+  if (domain) {
+    return `${domain}-${timestamp}.json`;
+  }
+  return `${timestamp}.json`;
 };
 
 const stringifyLogArg = (value) => {
@@ -1462,17 +1491,41 @@ const buildCaseFile = (callback) => {
             };
           })
         : sessionLogs;
+
+      // Build sections array
+      const sections = [];
+      if (includeLogger) {
+        sections.push('utag.DB');
+      }
+      if (includeConsent) {
+        sections.push('Consent');
+      }
+      if (includeIq) {
+        sections.push('iQ Profile');
+      }
+
+      // Extract domain from first available source URL
+      let domain = null;
+      if (!redactUrls) {
+        const loggerUrl = sessionMeta && sessionMeta.observed_url ? sessionMeta.observed_url : null;
+        const consentUrl = consentSnapshots.length > 0 && consentSnapshots[0].observed_url
+          ? consentSnapshots[0].observed_url
+          : null;
+        const iqUrl = iqSnapshot && iqSnapshot.observed_url ? iqSnapshot.observed_url : null;
+        const firstUrl = loggerUrl || consentUrl || iqUrl;
+        domain = firstUrl ? extractDomainName(firstUrl) : null;
+      }
+
       const caseFile = {
         generated_at: generatedAt,
+        domain: domain,
+        sections: sections,
         app: {
           name: manifest.name || 'Jarvis',
           version: manifest.version || 'unknown',
         },
         utagdb_logger: includeLogger
           ? {
-              enabled: Boolean(logger.enabled),
-              session_id: sessionId,
-              session_name: logger.filename || null,
               log_count: Number.isFinite(logger.logCount)
                 ? logger.logCount
                 : redactedLogs.length,
@@ -1491,11 +1544,7 @@ const buildCaseFile = (callback) => {
               snapshots: consentSnapshots,
             }
           : null,
-        iq_profile: includeIq
-          ? {
-              snapshot: iqSnapshot || null,
-            }
-          : null,
+        iq_profile: includeIq ? iqSnapshot || null : null,
       };
       callback(caseFile, null);
     });
@@ -1594,7 +1643,7 @@ const updateExportFeatureIndicators = (caseFile) => {
     Number.isFinite(caseFile.consent_monitor.snapshot_count) &&
     caseFile.consent_monitor.snapshot_count > 0;
   const iqReady =
-    includeIq && caseFile && caseFile.iq_profile && caseFile.iq_profile.snapshot;
+    includeIq && caseFile && caseFile.iq_profile;
 
   setFeatureExportIndicator('logger', loggerReady);
   setFeatureExportIndicator('consent', consentReady);
@@ -1680,7 +1729,7 @@ const getSourceUrlsFromCaseFile = (caseFile) => {
   if (consentSnapshots.length > 0 && consentSnapshots[0].observed_url) {
     urls.push({ label: 'Consent', url: consentSnapshots[0].observed_url });
   }
-  const iqSnapshot = caseFile.iq_profile && caseFile.iq_profile.snapshot;
+  const iqSnapshot = caseFile.iq_profile;
   if (iqSnapshot && iqSnapshot.observed_url) {
     urls.push({ label: 'iQ', url: iqSnapshot.observed_url });
   }
@@ -1778,10 +1827,13 @@ const exportCaseFile = () => {
     exportCaseFileObject = caseFile;
     exportCaseFileText = JSON.stringify(caseFile, null, 2);
     updateExportFeatureIndicators(caseFile);
-    const timestamp = new Date().toISOString();
+    const now = new Date();
     const blob = new Blob([exportCaseFileText], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const filename = formatCaseFileName(timestamp);
+    const sourceUrls = getSourceUrlsFromCaseFile(exportCaseFileObject);
+    // Extract domain from the first available source URL
+    const domain = sourceUrls.length > 0 ? extractDomainName(sourceUrls[0].url) : null;
+    const filename = formatCaseFileName(now, domain);
     const sections = [];
     if (!exportIncludeLogger || exportIncludeLogger.checked) {
       sections.push('utag.DB');
@@ -1793,7 +1845,6 @@ const exportCaseFile = () => {
       sections.push('iQ Profile');
     }
     const size = blob.size;
-    const sourceUrls = getSourceUrlsFromCaseFile(exportCaseFileObject);
     if (exportSize) {
       exportSize.textContent = `Estimated size: ${formatBytes(size)}`;
     }

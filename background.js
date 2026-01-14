@@ -379,8 +379,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             chrome.storage.local.set(
               {
                 [sessionMetaKey]: {
-                  session_id: sessionId,
-                  session_name: filename || null,
                   started_at: startedAt,
                   ended_at: null,
                   observed_url: observedUrl,
@@ -419,8 +417,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 {
                   [sessionMetaKey]: {
                     ...meta,
-                    session_id: sessionId || meta.session_id,
-                    session_name: storedFilename || meta.session_name || null,
                     ended_at: endedAt,
                   },
                 },
