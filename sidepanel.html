@@ -492,6 +492,14 @@
       .storage-button:active {
         transform: translateY(1px);
       }
+      .storage-button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+        background: #141414;
+        border-color: #222;
+        color: #666;
+      }
       .storage-button.is-loading {
         opacity: 0.8;
         pointer-events: none;
@@ -568,6 +576,15 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
+      }
+      .iq-response-fields {
+        padding: 8px;
+      }
+      .iq-response-fields .field {
+        margin-bottom: 8px;
+      }
+      .iq-response-fields .field:last-child {
+        margin-bottom: 0;
       }
       .iq-recent-item {
         border: 1px solid #2a2a2a;
@@ -850,6 +867,10 @@
       }
       #feature-iq .storage-group {
         margin-top: 0;
+      }
+      #feature-iq .panel-section-body .storage-group {
+        margin-top: 20px;
+        margin-bottom: 20px;
       }
       #iq-meta-section + .storage-group {
         margin-top: 16px;
@@ -1224,6 +1245,16 @@
         gap: 6px;
         margin-bottom: 14px;
         font-size: 13px;
+      }
+      .required {
+        color: #ff6b6b;
+        margin-left: 2px;
+      }
+      .field-hint {
+        font-size: 11px;
+        color: #888;
+        font-weight: 400;
+        margin-left: 8px;
       }
       .field.hidden {
         display: none;
@@ -1944,7 +1975,7 @@
               </div>
               <div class="panel-section-body" data-section-body="iq-step-1">
                 <label class="field">
-                  <span>Account</span>
+                  <span>Account<span class="required">*</span></span>
                   <input
                     id="iq-account"
                     type="text"
@@ -1952,11 +1983,11 @@
                   />
                 </label>
                 <label class="field">
-                  <span>Profile</span>
+                  <span>Profile<span class="required">*</span></span>
                   <input id="iq-profile" type="text" placeholder="main" />
                 </label>
                 <label class="field">
-                  <span>Username</span>
+                  <span>Username<span class="required">*</span></span>
                   <input
                     id="iq-username"
                     type="text"
@@ -1964,7 +1995,7 @@
                   />
                 </label>
                 <label class="field">
-                  <span>API Key</span>
+                  <span>API Key<span class="required">*</span></span>
                   <input id="iq-key" type="password" placeholder="API key" />
                 </label>
                 <div class="iq-actions">
@@ -1973,28 +2004,35 @@
                     <span class="btn-spinner" aria-hidden="true"></span>
                   </button>
                 </div>
-                <label class="field">
-                  <span>Token</span>
-                  <input
-                    id="iq-token"
-                    type="password"
-                    placeholder="Paste token to reuse"
-                  />
-                </label>
-                <label class="field">
-                  <span>Host</span>
-                  <input
-                    id="iq-host"
-                    type="text"
-                    placeholder="us-west-2-platform.tealiumapis.com"
-                  />
-                </label>
                 <div class="storage-group">
                   <div class="storage-header">
-                    <span>Recent Clients</span>
+                    <span>Recent Profiles</span>
                     <span id="iq-recent-count">0</span>
                   </div>
                   <div id="iq-recent-list" class="iq-recent-list"></div>
+                </div>
+                <div class="storage-group">
+                  <div class="storage-header">
+                    <span>Get Token Response</span>
+                  </div>
+                  <div class="iq-response-fields">
+                    <label class="field">
+                      <span>Token<span class="field-hint">Auto-filled from Get Token</span></span>
+                      <input
+                        id="iq-token"
+                        type="password"
+                        placeholder="Paste token to reuse"
+                      />
+                    </label>
+                    <label class="field">
+                      <span>Host<span class="field-hint">Auto-filled from Get Token</span></span>
+                      <input
+                        id="iq-host"
+                        type="text"
+                        placeholder="us-west-2-platform.tealiumapis.com"
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1055,6 +1055,9 @@ const applyIqFormForTab = (tabUuid) => {
     const host = tabUuid ? iqHostsByTab.get(tabUuid) || '' : '';
     iqHostInput.value = host;
   }
+  if (typeof validateIqAuthFields === 'function') {
+    validateIqAuthFields();
+  }
 };
 
 const updateIqMap = (map, value) => {
@@ -1131,6 +1134,9 @@ const renderIqRecents = (items) => {
         iqTokensByTab.set(tabUuid, '');
       }
       saveIqRecentInputs(entry);
+      if (typeof validateIqAuthFields === 'function') {
+        validateIqAuthFields();
+      }
     });
     iqRecentList.appendChild(item);
   });
@@ -1231,12 +1237,15 @@ const applyIqSnapshot = (payload) => {
 
 const fetchIqToken = () => {
   const { account, profile, username, key } = getIqFormValues();
-  if (!account || !profile) {
-    setIqStatus('Account and profile are required.', true);
-    return;
-  }
-  if (!username || !key) {
-    setIqStatus('Username and API key are required.', true);
+  const missing = [];
+  if (!account) missing.push('Account');
+  if (!profile) missing.push('Profile');
+  if (!username) missing.push('Username');
+  if (!key) missing.push('API Key');
+
+  if (missing.length > 0) {
+    const fields = missing.join(', ');
+    setIqStatus(`Please fill in all required fields: ${fields}`, true);
     return;
   }
   setButtonLoading(iqAuthButton, true);
@@ -1826,9 +1835,29 @@ if (exportIncludeIq) {
   exportIncludeIq.addEventListener('change', refreshExportPreview);
 }
 
+const validateIqAuthFields = () => {
+  if (!iqAuthButton) {
+    return;
+  }
+  const values = getIqFormValues();
+  const allFieldsFilled = values.account && values.profile && values.username && values.key;
+  iqAuthButton.disabled = !allFieldsFilled;
+};
+
 if (iqRecentList) {
   loadIqRecents();
 }
+
+// Add input listeners to validate fields
+[iqAccountInput, iqProfileInput, iqUsernameInput, iqKeyInput].forEach((input) => {
+  if (input) {
+    input.addEventListener('input', validateIqAuthFields);
+  }
+});
+
+// Initial validation
+validateIqAuthFields();
+
 if (iqAuthButton) {
   iqAuthButton.addEventListener('click', (e) => {
     e.preventDefault();
