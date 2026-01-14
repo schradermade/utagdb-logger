@@ -986,6 +986,9 @@ const setIqToken = (token) => {
   if (iqTokenInput) {
     iqTokenInput.value = token || '';
   }
+  if (typeof validateIqFetchButton === 'function') {
+    validateIqFetchButton();
+  }
 };
 
 const setIqHost = (host) => {
@@ -1057,6 +1060,9 @@ const applyIqFormForTab = (tabUuid) => {
   }
   if (typeof validateIqAuthFields === 'function') {
     validateIqAuthFields();
+  }
+  if (typeof validateIqFetchButton === 'function') {
+    validateIqFetchButton();
   }
 };
 
@@ -1136,6 +1142,9 @@ const renderIqRecents = (items) => {
       saveIqRecentInputs(entry);
       if (typeof validateIqAuthFields === 'function') {
         validateIqAuthFields();
+      }
+      if (typeof validateIqFetchButton === 'function') {
+        validateIqFetchButton();
       }
     });
     iqRecentList.appendChild(item);
@@ -1844,6 +1853,14 @@ const validateIqAuthFields = () => {
   iqAuthButton.disabled = !allFieldsFilled;
 };
 
+const validateIqFetchButton = () => {
+  if (!iqFetchButton) {
+    return;
+  }
+  const token = iqTokenInput ? iqTokenInput.value.trim() : '';
+  iqFetchButton.disabled = !token;
+};
+
 if (iqRecentList) {
   loadIqRecents();
 }
@@ -1855,8 +1872,14 @@ if (iqRecentList) {
   }
 });
 
+// Add input listener to token field for fetch button validation
+if (iqTokenInput) {
+  iqTokenInput.addEventListener('input', validateIqFetchButton);
+}
+
 // Initial validation
 validateIqAuthFields();
+validateIqFetchButton();
 
 if (iqAuthButton) {
   iqAuthButton.addEventListener('click', (e) => {

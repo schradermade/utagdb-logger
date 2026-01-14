@@ -581,7 +581,7 @@
         padding: 8px;
       }
       .iq-response-fields .field {
-        margin-bottom: 8px;
+        margin-bottom: 16px;
       }
       .iq-response-fields .field:last-child {
         margin-bottom: 0;
@@ -883,6 +883,9 @@
         text-transform: uppercase;
         color: #b6b6b6;
         margin-bottom: 6px;
+      }
+      .storage-header.preserve-case {
+        text-transform: none;
       }
       #export-view .storage-header {
         align-items: center;
@@ -1255,6 +1258,12 @@
         color: #888;
         font-weight: 400;
         margin-left: 8px;
+      }
+      .field-help {
+        font-size: 11px;
+        color: #999;
+        font-style: italic;
+        margin-top: -2px;
       }
       .field.hidden {
         display: none;
@@ -1770,8 +1779,8 @@
             <div class="logger-steps">
               <div class="logger-step">
                 <div class="logger-step-inline">
-                  <span class="logger-step-number">1.</span>Enable utagdb
-                  Cookie.
+                  <span class="logger-step-number">1.</span>Navigate to the page
+                  where the logs will be collected and enable the utagdb cookie.
                 </div>
                 <div class="logger-step-subaction">
                   <div class="logger-actions">
@@ -1795,16 +1804,16 @@
                 </div>
               </div>
               <div>
-                <span class="logger-step-number">2.</span>Click Start Recording
-                Logs.
+                <span class="logger-step-number">2.</span>Click "Start Recording
+                Logs" button.
               </div>
               <div>
-                <span class="logger-step-number">3.</span>Trigger utag.DB logs
-                on the page.
+                <span class="logger-step-number">3.</span>Refresh page to
+                trigger log output.
               </div>
               <div>
-                <span class="logger-step-number">4.</span>Click stop when done,
-                then check Logs Preview or Export.
+                <span class="logger-step-number">4.</span>Click Stop when logs
+                have completed, then check LOGS PREVIEW below, or Export tab.
               </div>
             </div>
             <button id="record" class="record" type="button">
@@ -2017,15 +2026,26 @@
                   </div>
                   <div class="iq-response-fields">
                     <label class="field">
-                      <span>Token<span class="field-hint">Auto-filled from Get Token</span></span>
+                      <span
+                        >Token<span class="field-hint"
+                          >Auto-filled from Get Token</span
+                        ></span
+                      >
                       <input
                         id="iq-token"
                         type="password"
                         placeholder="Paste token to reuse"
                       />
+                      <span class="field-help"
+                        >Once populated, proceed to Step 2: Fetch Profile</span
+                      >
                     </label>
                     <label class="field">
-                      <span>Host<span class="field-hint">Auto-filled from Get Token</span></span>
+                      <span
+                        >Host<span class="field-hint"
+                          >Auto-filled from Get Token</span
+                        ></span
+                      >
                       <input
                         id="iq-host"
                         type="text"
@@ -2138,7 +2158,7 @@
           <div id="iq-status" class="status">No profile fetched yet.</div>
           <div id="iq-meta-section" class="panel-section" hidden>
             <div class="panel-section-title">
-              <span>Snapshot</span><span>Request</span>
+              <span>API Request</span>
             </div>
             <div id="iq-meta" class="iq-meta">
               <div id="iq-meta-url" class="iq-meta-url"></div>
@@ -2146,8 +2166,8 @@
             </div>
           </div>
           <div class="storage-group">
-            <div class="storage-header">
-              <span>Profile Preview</span>
+            <div class="storage-header preserve-case">
+              <span>iQ PROFILE PREVIEW</span>
               <span id="iq-preview-count">0</span>
             </div>
             <div class="iq-preview-shell">
@@ -2242,41 +2262,48 @@
               <span>Consent Summary</span>
             </div>
             <div class="consent-summary">
-            <div class="consent-row-group">
-              <div class="consent-row">
-                <span>Regulatory Model</span>
-                <span id="consent-regulatory" class="consent-pill">Unknown</span>
+              <div class="consent-row-group">
+                <div class="consent-row">
+                  <span>Regulatory Model</span>
+                  <span id="consent-regulatory" class="consent-pill"
+                    >Unknown</span
+                  >
+                </div>
+                <div
+                  id="consent-regulatory-sources"
+                  class="consent-subitems"
+                ></div>
               </div>
-              <div id="consent-regulatory-sources" class="consent-subitems"></div>
-            </div>
-            <div class="consent-row-group">
-              <div class="consent-row">
-                <span>CMP Detected</span>
-                <span id="consent-required" class="consent-pill">Unknown</span>
+              <div class="consent-row-group">
+                <div class="consent-row">
+                  <span>CMP Detected</span>
+                  <span id="consent-required" class="consent-pill"
+                    >Unknown</span
+                  >
+                </div>
+                <div id="consent-cmps" class="consent-subitems"></div>
               </div>
-              <div id="consent-cmps" class="consent-subitems"></div>
-            </div>
-            <div class="consent-row-group">
-              <div class="consent-row">
-                <span>Consent Data Stored</span>
-                <span id="consent-present" class="consent-pill">Unknown</span>
+              <div class="consent-row-group">
+                <div class="consent-row">
+                  <span>Consent Data Stored</span>
+                  <span id="consent-present" class="consent-pill">Unknown</span>
+                </div>
+                <div id="consent-sources" class="consent-subitems"></div>
               </div>
-              <div id="consent-sources" class="consent-subitems"></div>
-            </div>
-            <div class="consent-row-group">
-              <div class="consent-row">
-                <span>GPC Signal</span>
-                <span id="consent-gpc" class="consent-pill">Unknown</span>
+              <div class="consent-row-group">
+                <div class="consent-row">
+                  <span>GPC Signal</span>
+                  <span id="consent-gpc" class="consent-pill">Unknown</span>
+                </div>
+                <div id="consent-gpc-sources" class="consent-subitems"></div>
               </div>
-              <div id="consent-gpc-sources" class="consent-subitems"></div>
-            </div>
-            <div class="consent-row-group">
-              <div class="consent-row">
-                <span>Consent State</span>
-                <div id="consent-state"></div>
+              <div class="consent-row-group">
+                <div class="consent-row">
+                  <span>Consent State</span>
+                  <div id="consent-state"></div>
+                </div>
+                <div id="consent-categories" class="consent-subitems"></div>
               </div>
-              <div id="consent-categories" class="consent-subitems"></div>
-            </div>
             </div>
           </div>
 
