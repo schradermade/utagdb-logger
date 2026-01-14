@@ -100,6 +100,7 @@ if (chrome.action && chrome.action.onClicked) {
       windowId: tab.windowId,
       enabledTabs: Array.from(enabledSidePanelTabs),
     });
+    setSidePanelForTab(activeTabId, true);
     syncSidePanelToTabs();
     openSidePanelForTab(activeTabId);
   });

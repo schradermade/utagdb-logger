@@ -1824,10 +1824,18 @@ if (iqRecentList) {
   loadIqRecents();
 }
 if (iqAuthButton) {
-  iqAuthButton.addEventListener('click', fetchIqToken);
+  iqAuthButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fetchIqToken();
+  });
 }
 if (iqFetchButton) {
-  iqFetchButton.addEventListener('click', fetchIqProfile);
+  iqFetchButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fetchIqProfile();
+  });
 }
 if (iqCopyButton) {
   iqCopyButton.addEventListener('click', () => {
